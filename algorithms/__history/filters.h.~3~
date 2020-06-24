@@ -1,0 +1,12 @@
+#ifndef FILTERS_H
+#define FILTERS_H
+
+class Filter
+{
+	public:
+	int FIR_filter_96(std::vector<double>& Data);
+	private:
+	protected:
+};
+
+#endif // FILTERS_H

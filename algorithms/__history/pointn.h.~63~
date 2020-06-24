@@ -1,0 +1,159 @@
+#ifndef POINTN_H
+#define POINTN_H
+#include <vector>
+#include <initializer_list>
+#include <limits>
+#include <cmath>
+/**
+*	\brief base N dimension point class 
+*/
+class PointN
+{
+
+public:
+/*enumerator for dimension names*/
+ typedef enum
+	{
+		X=0,
+		PHI=0,
+		Y=1,
+		R=1,
+		Z=2
+	}coord_type;
+/*constructor for a point in a form PointN({10,20,30}) creates a 3 dim point x=10 y=20 z=30 )*/
+	PointN(std::initializer_list<double> list,bool polar)
+	{
+	  polar_=polar;
+	  for(auto elem:list)
+	  {
+	  container.push_back(elem);
+	  }
+	}
+/*constructor for a point in a form PointN(N) creates a N dimensional point zeroed (not polar by default))*/
+	PointN(int N)
+	{
+	  polar_=false;
+	  if ((N<=0)||(N>3)) throw (-1); // I DONT LIKE THIS BUT HOW TO DO THAT PROPERLY???????
+	  for(int i=0;i<N;i++)
+	  {
+	  container.push_back(0);
+	  }
+	}
+/*get the full container */
+   std::vector<double> get(){return container;};
+/*get the point dimension*/
+   int getDim(){return container.size();};
+/*get the point type (polar or not)*/
+   bool getType(){return polar_;};
+/*set the point type (polar or not)*/
+   void setType(bool polar){polar_=polar;};
+
+/**
+*	\brief get point coordinates
+*	Get point coordinates, if one of the coordinates is out of range (say we ask for Z for a two dimensional point) it will
+*	be set to lowest double possible
+*	\param[in]	coords	list of enums describing what coords to get {ccord_type::X,ccord_type::Y}
+*	\param[out] values	list of references to variables where to put coordinates
+*	\return Error:	1	one of dimensions is out of range
+*/
+   int get(std::initializer_list <coord_type> coords ,std::initializer_list <double*> values )
+   {
+	int fl_bad=0;
+	for(int i=0;i<coords.size();i++)
+	  {
+
+		  if(((*(coords.begin()+i)+1)>container.size())||(*(coords.begin()+i)<0))
+		  {
+			fl_bad=1;
+			**(values.begin()+i)=std::numeric_limits<double>::lowest();
+		  } else  **(values.begin()+i)=container[*(coords.begin()+i)];
+	  }
+	return fl_bad;
+   };
+/**
+*	\brief set point coordinates
+*	\param[in]	coords	list of enums describing what coords to get {ccord_type::X,ccord_type::Y}
+*	\param[out] values	list of variables containing coordinates
+*	\return Error:	-1	requested dimension is larger then point dimension
+*	\return Error:	-2	requested dimension does not exist
+*/
+   int set(std::initializer_list <coord_type> coords ,std::initializer_list <double> values )
+   {
+	if ((coords.size()==values.size())&&(coords.size()<=container.size()))
+	{
+	  for(int i=0;i<coords.size();i++)
+	  {
+		   if(((*(coords.begin()+i)+1)>container.size())||(*(coords.begin()+i)<0)) return -2;
+		  container[*(coords.begin()+i)]=*(values.begin()+i);
+	  }
+	} else return -1;
+   };
+
+	  PointN& operator += (const PointN & pnt)
+   {
+	 if(container.size()>=pnt.container.size())
+		{
+			std::vector <double> thisPnt,thatPnt;
+			thatPnt=pnt.container; // copy data to container ()
+			thisPnt=this->container; // copy data to container ()
+
+			if((this->polar_)) // if our point is in polar coordinates calculate it in orthogonal (also at least 2 dims are present)
+			{
+				thisPnt[0]=this->container[1]*std::cos(this->container[0]); //X
+				thisPnt[1]=this->container[1]*std::sin(this->container[0]); //Y
+			}
+			if((pnt.polar_)) // if rval point is in polar coordinates calculate it in orthogonal (also at least 2 dims are present)
+			{
+				thatPnt[0]=pnt.container[1]*std::cos(pnt.container[0]); //X
+				thatPnt[1]=pnt.container[1]*std::sin(pnt.container[0]); //Y
+			}
+			for(int i=0;i<thatPnt.size();i++) thisPnt[i]+=thatPnt[i];
+			if(!this->polar_) {this->container=thisPnt;} else
+			 {
+				this->container=thisPnt;
+				this->container[0]=std::atan2(thisPnt[1],thisPnt[0]); // PHI
+                if(this->container[0]<0.0) this->container[0]+=2*M_PI;
+				this->container[1]=std::sqrt(thisPnt[0]*thisPnt[0]+thisPnt[1]*thisPnt[1]);
+             }
+		}
+		return *this;
+   }
+	  PointN& operator -= (const PointN & pnt)
+   {
+	 if(container.size()>=pnt.container.size())
+		{
+			std::vector <double> thisPnt,thatPnt;
+			thatPnt=pnt.container; // copy data to container ()
+			thisPnt=this->container; // copy data to container ()
+
+			if((this->polar_)) // if our point is in polar coordinates calculate it in orthogonal (also at least 2 dims are present)
+			{
+				thisPnt[0]=this->container[1]*std::cos(this->container[0]); //X
+				thisPnt[1]=this->container[1]*std::sin(this->container[0]); //Y
+			}
+			if((pnt.polar_)) // if rval point is in polar coordinates calculate it in orthogonal (also at least 2 dims are present)
+			{
+				thatPnt[0]=pnt.container[1]*std::cos(pnt.container[0]); //X
+				thatPnt[1]=pnt.container[1]*std::sin(pnt.container[0]); //Y
+			}
+			for(int i=0;i<thatPnt.size();i++) thisPnt[i]-=thatPnt[i];
+			if(!this->polar_) {this->container=thisPnt;} else
+			 {
+				this->container=thisPnt;
+				this->container[0]=std::atan2(thisPnt[1],thisPnt[0]); // PHI
+                if(this->container[0]<0.0) this->container[0]+=2*M_PI;
+				this->container[1]=std::sqrt(thisPnt[0]*thisPnt[0]+thisPnt[1]*thisPnt[1]);
+             }
+		}
+		return *this;
+   }
+
+
+
+protected:
+	std::vector <double> container;
+	bool polar_;
+};
+
+
+#endif // POINTN_H

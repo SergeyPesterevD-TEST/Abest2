@@ -1,0 +1,30 @@
+#ifndef ALGORITHMS_H
+#define ALGORITHMS_H
+#include <map>
+#include <vector>
+#include "pointn.h"
+#define MIN_POINTS_IN_BIN 100
+#define MAX_AXIS_DIFFERENCE 2.0
+#define	MAX_CENTERPOINT_RANGE 5.0
+class Algorithms
+{
+	public:
+	Algorithms(){};
+	static void Resample( std::multimap <double,PointN>& DataIn, std::map <double,PointN>& DataOut, int pts_rev);
+	static int CalcCircleLSQ(std::map <double,PointN>& DataIn,PointN& centerPnt,double& Diam);
+	static int CalcMEC(std::map <double,PointN>& DataIn,PointN& centerPnt,double& Diam);
+	static int CalcEllipseLSQ(std::map <double,PointN>& DataIn, PointN& axisDiam,PointN& centerPnt,double &axisAngle);
+	static int CalcXY0_Weiz(std::map <double,PointN>&DataIn,PointN& centerPnt); //bad
+	static int CalcXY0_Wnd(std::map <double,PointN>&DataIn,std::vector <std::map <double,PointN>>& lndData,std::vector <PointN>& cloudCenters,double wndLen,double wndStdevMax,double binDif);// old pios style
+	static int CalcXY0_Hist(std::map <double,PointN>&DataIn,std::vector <std::map <double,PointN>>& lndData,std::vector <PointN>& cloudCenters,double binDif);// old pios style
+
+	private:
+
+};
+
+
+#endif // ALGORITHMS_H
+
+
+
+

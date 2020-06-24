@@ -1,0 +1,1403 @@
+#include "algorithms.h"
+#include "string.h"
+using namespace std;
+//---------------------------------------------------------------------------
+/**
+*	\brief resample points  (gaps larger then 2*discrets are not filled)
+*	\param	DataIn	data to be discretized IN RADIANS 0..2*M_PI
+*	\param	pts_rev	points per revolution discret factor
+*/
+ void  Algorithms::Resample( std::multimap <double,PointN>& DataIn, std::map <double,PointN>& DataOut, int pts_rev)
+{
+	double discr= 2*M_PI/pts_rev;
+	double strtPHI=0,endPHI=0,currPHI=0;
+	double Phi0=0,R0=0,Phi1=0,R1=0,R=0,X1,Y1,X0,Y0,k,b,den;
+	int cntr=0;
+
+
+	alglib::real_1d_array dataWnd;
+	vector <PointN> dataWndVUp,dataWndVDn;
+
+	for (int i = 0; i < pts_rev; i++)
+	{
+
+		dataWndVUp.clear();
+		dataWndVDn.clear();
+		double strtPHI= (i-1)*discr;
+		double currPHI=  i*discr;
+		double endPHI=  (i+1)*discr;
+		// fill window with data that lies in WNDLen angle regarding current PHI
+		if(endPHI>(2*M_PI))
+		{
+			auto itrC=DataIn.lower_bound(currPHI);
+			for(auto itr=itrC;itr!=DataIn.end();++itr)
+			   dataWndVUp.push_back(itr->second);
+
+			auto itrE=DataIn.lower_bound(endPHI-2*M_PI);
+			if(itrE!=DataIn.end()) for(auto itr=DataIn.begin();itr!=itrE;++itr)
+			   dataWndVUp.push_back(itr->second);
+
+
+		} else
+		{
+			auto itrE=DataIn.lower_bound(endPHI);
+			auto itrC=DataIn.lower_bound(currPHI);
+			for(auto itr=itrC;itr!=itrE;++itr)
+			   dataWndVUp.push_back(itr->second);
+		}
+		if(strtPHI<0)
+		{
+			auto itrS=DataIn.lower_bound(strtPHI+2*M_PI);
+			if(itrS!=DataIn.end()) for(auto itr=itrS;itr!=DataIn.end();++itr)
+			   dataWndVDn.push_back(itr->second);
+
+			auto itrC=DataIn.lower_bound(currPHI);
+			for(auto itr=DataIn.begin();itr!=itrC;++itr)
+			   dataWndVDn.push_back(itr->second);
+		} else
+		{
+			auto itrS=DataIn.lower_bound(strtPHI);
+			auto itrC=DataIn.lower_bound(currPHI);
+			for(auto itr=itrS;itr!=itrC;++itr)
+			   dataWndVDn.push_back(itr->second);
+		}
+
+	if(dataWndVDn.size()!=0&&dataWndVUp.size()!=0)
+	{
+	   dataWndVUp.front().get({PointN::PHI,PointN::R},{&Phi0,&R0});
+	   dataWndVDn.back().get({PointN::PHI,PointN::R},{&Phi1,&R1});
+	   X0=R0*std::cos(Phi0);
+	   Y0=R0*std::sin(Phi0);
+	   X1=R1*std::cos(Phi1);
+	   Y1=R1*std::sin(Phi1);
+	   den=(X1-X0);
+	   if(den!=0.0)
+	   {
+			k=(Y1-Y0)/den;
+			b=Y0-k*X0;
+			X0=-b/(k-tan(i*discr));
+			R0=fabs(X0/cos(i*discr));
+			DataOut.insert({i*discr,{{i*discr,R0},true}});
+	   }
+	} else if(dataWndVDn.size()!=0)
+	{
+		dataWndVDn.back().get({PointN::R},{&R0});
+		DataOut.insert({i*discr,{{i*discr,R0},true}});
+	} else if(dataWndVUp.size()!=0)
+	{
+		dataWndVUp.front().get({PointN::R},{&R0});
+		DataOut.insert({i*discr,{{i*discr,R0},true}});
+	}
+	
+
+	
+   }
+}
+
+
+
+
+ /**
+*	\brief calculate minimum enclosing circle
+*	Calculate MEC based
+*	Bouncing Bubble: A fast algorithm for Minimal Enclosing Ball problem
+*	\param[in]		DataIn
+*	\return			 0 - ok
+*	\return Error	-1 - math error
+*/
+int Algorithms::CalcMEC_CGAL(std::map <double,PointN>& DataIn,PointN& centerPnt,double& Diam)
+{
+  double X,Y,PHI,R;
+  typedef double mytype;
+  typedef std::list<std::vector<mytype> >::const_iterator PointIterator;
+  typedef std::vector<mytype>::const_iterator CoordIterator;
+  typedef Miniball::Miniball <Miniball::CoordAccessor<PointIterator, CoordIterator> > MB;
+  std::list<std::vector<mytype> > lp;
+  const int       d = 2;            // dimension
+
+	for (auto& elem:DataIn) {
+	std::vector<mytype> p(d);
+	elem.second.get({PointN::PHI,PointN::R},{&PHI,&R});
+	p[0]=R*cos(PHI);
+	p[1]=R*sin(PHI);
+	lp.push_back(p);
+  }
+	MB mb (d, lp.begin(), lp.end());
+	const double * center= mb.center();
+	X=*center;
+	center++;
+	Y=*center;
+	Diam=std::sqrt(mb.squared_radius())*2;
+	centerPnt.set({PointN::X,PointN::Y},{X,Y});
+	centerPnt.setType(false);
+    return 0;
+}
+ /**
+*	\brief calculate minimum enclosing circle
+*	Calculate MEC based on bouncing ball algorithm by: Tian Bo
+*	Bouncing Bubble: A fast algorithm for Minimal Enclosing Ball problem
+*	\param[in]		DataIn
+*	\return			 0 - ok
+*	\return Error	-1 - math error
+*/
+int Algorithms::CalcMEC(std::map <double,PointN>& DataIn,PointN& centerPnt,double& Diam)
+{
+	double PHI,R;
+	double cX=0,cY=0;
+	double difX,difY;
+	double posX,posY;
+	double radius=0.001;
+	double len, alpha, alphaSq;
+	DataIn.begin()->second.get({PointN::PHI,PointN::R},{&PHI,&R});
+	cX=R*std::cos(PHI);
+	cY=R*std::sin(PHI);
+	for (int i = 0; i < 2; i++)
+	{
+		for(auto& elem: DataIn )
+		{
+		 elem.second.get({PointN::PHI,PointN::R},{&PHI,&R});
+		 posX=R*std::cos(PHI);
+		 posY=R*std::sin(PHI);
+		 difX=posX-cX;
+		 difY=posY-cY;
+		 len=std::sqrt(difX*difX+difY*difY);
+		 if(len>radius)
+		 {
+         	alpha = len / radius;
+            alphaSq = alpha * alpha;
+            radius = 0.5f * (alpha + 1 / alpha) * radius;
+			cX = 0.5f * ((1 + 1 / alphaSq) * cX + (1 - 1 / alphaSq) * posX);
+			cY = 0.5f * ((1 + 1 / alphaSq) * cY + (1 - 1 / alphaSq) * posY);
+
+		 }
+		}
+	}
+	for(auto& elem: DataIn )
+	{
+		 elem.second.get({PointN::PHI,PointN::R},{&PHI,&R});
+		 posX=R*std::cos(PHI);
+		 posY=R*std::sin(PHI);
+		 difX= posX - cX;
+		 difY= posY - cY;
+		 len = std::sqrt(difX*difX+difY*difY);
+		 if (len > radius){
+			 radius = (radius + len) / 2.0f;
+			 cX = cX + ((len - radius) / len * difX);
+			 cY = cY + ((len - radius) / len * difY);
+
+		 }
+
+	}
+	centerPnt.set({PointN::X,PointN::Y},{cX,cY});
+	centerPnt.setType(false);
+	Diam=2*radius;
+    return 0;
+}
+
+// BoundSphere calculateBoundSphere(vector<Vertex> vertices){
+//	Vector3D center = vertices[0].position;
+//	float radius = 0.0001f;
+//	Vector3D pos, diff;
+//	float len, alpha, alphaSq;
+//	vector<Vertex>::iterator it;
+//
+//	for (int i = 0; i < 2; i++){
+//		for (it = vertices.begin(); it != vertices.end(); it++){
+//			pos = it->position;
+//			diff = pos - center;
+//            len = diff.length();
+//            if (len > radius){
+//                alpha = len / radius;
+//                alphaSq = alpha * alpha;
+//                radius = 0.5f * (alpha + 1 / alpha) * radius;
+//                center = 0.5f * ((1 + 1 / alphaSq) * center + (1 - 1 / alphaSq) * pos);
+//            }
+//        }
+//	}
+//
+//	for (it = vertices.begin(); it != vertices.end(); it++){
+//        pos = it->position;
+//        diff = pos - center;
+//        len = diff.length();
+//        if (len > radius){
+//            radius = (radius + len) / 2.0f;
+//            center = center + ((len - radius) / len * diff);
+//        }
+//    }
+//
+//    return BoundSphere(center, radius);
+//}
+
+
+
+ /**
+*	\brief clculate circle  (MTF)
+*	Calculate circle based on work: Dale Umbach, Kerry N. Jones
+*	A Few Methods for Fitting Circles to Data
+*	\param[in]		DataIn
+*	\return			 0 - ok
+*	\return Error	-1 - math error
+*/
+
+int Algorithms::CalcCircleLSQ(std::map <double,PointN>& DataIn,PointN& centerPnt,double& Diam)
+{
+
+   double  Sx=0,Sx2=0,Sx3=0,Sxy=0,Sy=0,Sy2=0,Sy3=0,Sxy2=0,Sx2y=0;
+   double A,B,C,D,E;
+   double X,Y,R,PHI;
+   double Xo,Yo;
+   int N=DataIn.size();
+   if (N<3) return -1;
+   for (auto& elem:DataIn) {
+	  // if point is in polar form
+	  if(elem.second.getType()){
+	   elem.second.get({PointN::R,PointN::PHI},{&R,&PHI});
+	   X=R*cos(PHI);
+	   Y=R*sin(PHI);
+	   } else {elem.second.get({PointN::X,PointN::Y},{&X,&Y});}
+	   Sx+=X;
+	   Sx2+=std::pow(X,2);
+	   Sx3+=std::pow(X,3);
+	   Sy+=Y;
+	   Sy2+=std::pow(Y,2);
+	   Sy3+=std::pow(Y,3);
+	   Sxy+= X*Y;
+	   Sx2y+= std::pow(X,2)*Y;
+	   Sxy2+= X*std::pow(Y,2);
+   }
+	A= N*Sx2 - Sx*Sx;
+	B= N*Sxy - Sx*Sy;
+	C= N*Sy2 - Sy*Sy;
+	D= 0.5*(N*Sxy2 - Sx*Sy2 + N*Sx3 - Sx*Sx2 );
+	E= 0.5*(N*Sx2y - Sy*Sx2 + N*Sy3 - Sy*Sy2);
+	double det= A*C-B*B;
+	if (std::fabs(det)<1E-6) return -1;
+	Xo= (D*C - B*E)/det;
+	Yo= (A*E - B*D)/det;
+	double rm=0;
+	try
+	{
+	 for (auto& elem:DataIn) {
+	   elem.second.get({PointN::R,PointN::PHI},{&R,&PHI});
+	   X=R*cos(PHI);
+	   Y=R*sin(PHI);
+	   rm+=sqrt((X-Xo)*(X-Xo)+(Y-Yo)*(Y-Yo));
+	 }
+	} catch(...){return -1;}
+
+	centerPnt.set({PointN::X,PointN::Y},{Xo,Yo});
+	Diam=2*rm/N;
+
+	return 0;
+
+}
+
+
+ /**
+*	\brief calculate ellipse
+*	Calculate ellipse based on old good Nonlinear LSQ
+*	\param[in]		DataIn		map of points
+*	\param[out]		AxisDiam	Axis lengths
+*	\param[out]		centerPnt	ellipse center
+*	\param[out]		AxisAngle	Magor axis angle
+*	\param[out]		LX,LY       diameters based on ellipse intersection with orthogonal axes
+*	\return			 0 - ok
+*	\return	Error 	-1 - not enough points
+*	\return Error	-2 - matrix inverse error
+*	\return Error	-3 - matrix eugen vector calc error
+*	\return Error	-4 - other calc error
+*/
+
+int Algorithms::CalcEllipseLSQ(std::map <double,PointN>& DataIn, PointN& axisDiam,PointN& centerPnt,double &axisAngle)
+//int Algorithms::CalcEllipseLSQ(std::map <double,PointN>& DataIn, double &DXo, double &DYo, double &Xo,
+//		double &Yo,double &Alpha,double &LX,double &LY)
+	{
+	alglib::real_1d_array x, y; // : array[0..5]of double;
+	alglib::real_2d_array D1, D2; // :array[0..5,0..2] of double;
+	alglib::real_2d_array D1T, D2T; // :array [0..2,0..5] of double;
+	alglib::real_2d_array S1, S2, S3, S2T, T, M, M1;// : array [0..2,0..2] of double;
+	int i, j, k, N; // :integer;
+	alglib::real_2d_array S3i, Me;
+	alglib::real_1d_array WR, WI;
+	alglib::real_2d_array VL, VR;
+	double a, b, c, d, e, f;
+	double ba, bb, bc, bd, bf, bg;
+	double CX, CY, DX, DY, Numer, Den1, Den2, Den3;
+	N = DataIn.size();
+	if(N<5) return -1;
+
+	x.setlength(N);
+	y.setlength(N);
+	D1.setlength(N, 3);
+	D2.setlength(N, 3);
+	D1T.setlength(3, N);
+	D2T.setlength(3, N);
+	S1.setlength(3, 3);
+	S2.setlength(3, 3);
+	S3.setlength(3, 3);
+	S2T.setlength(3, 3);
+	S3i.setlength(3, 3);
+	T.setlength(3, 3);
+	M.setlength(3, 3);
+	M1.setlength(3, 3);
+	Me.setlength(3, 3);
+	WR.setlength(3);
+	WI.setlength(3);
+	VL.setlength(3, 3);
+	VR.setlength(3, 3);
+	int cntr=0;
+	double X,Y,R,PHI;
+	for (auto elem : DataIn  ) {
+		// if point is polar need to calculate XY
+	   try
+	   {
+			if(elem.second.getType())
+			{
+				elem.second.get({PointN::R,PointN::PHI},{&R,&PHI});
+				X=R*cos(PHI);
+				Y=R*sin(PHI);
+			} else elem.second.get({PointN::X,PointN::Y},{&X,&Y});
+
+			D1[cntr][0] = std::pow(X,2);
+			D2[cntr][0] = X;
+			D1[cntr][1] = X * Y;
+			D2[cntr][1] = Y;
+			D1[cntr][2] = std::pow(Y,2);
+			D2[cntr][2] = 1;
+			cntr++;
+		} catch (...) { N--; } // if we get some bad point must recalc N
+	}
+
+	for (i = 0; i < N; i++) {
+		for (j = 0; j < 3; j++) {
+			D1T[j][i] = D1[i][j];
+			D2T[j][i] = D2[i][j];
+		}
+	}
+
+	for (j = 0; j < 3; j++) {
+		for (k = 0; k < 3; k++) {
+			S1[k][j] = 0.0;
+			S2[k][j] = 0.0;
+			S3[k][j] = 0.0;
+			for (i = 0; i < N; i++) {
+				S1[k][j] = S1[k][j] + D1T[k][i] * D1[i][j];
+				S2[k][j] = S2[k][j] + D1T[k][i] * D2[i][j];
+				S3[k][j] = S3[k][j] + D2T[k][i] * D2[i][j];
+
+			}
+			S2T[j][k] = S2[k][j];
+		}
+	}
+
+	for (i = 0; i < 3; i++) {
+		for (j = 0; j < 3; j++) {
+			S3i[i][j] = S3[i][j];
+		}
+	}
+
+	const alglib::ae_int_t n = 3;
+	alglib::ae_int_t info;
+	alglib::matinvreport rep;
+	alglib::rmatrixinverse(S3i, n, info, rep);
+
+	if (info == -3) return -2;
+
+	for (j = 0; j < 3; j++) {
+		for (k = 0; k < 3; k++) {
+			T[k][j] = 0;
+			for (i = 0; i < 3; i++) {
+				T[k][j] += (-1) * S3i[k][i] * S2T[i][j];
+			}
+		}
+	}
+
+	for (j = 0; j < 3; j++) {
+		for (k = 0; k < 3; k++) {
+			M[k][j] = S1[k][j];
+			for (i = 0; i < 3; i++) {
+				M[k][j] += S2[k][i] * T[i][j];
+
+			}
+		}
+	}
+	for (j = 0; j < 3; j++) {
+		Me[0][j] = (M[2][j]) / 2;
+		Me[1][j] = -M[1][j];
+		Me[2][j] = (M[0][j]) / 2;
+
+	}
+
+   if (!rmatrixevd(Me, 3, 3, WR, WI, VL, VR))
+   {
+	   return -3;
+   }
+
+	for (i = 0; i < 3; i++) {
+		if (4 * VR[0][i] * VR[2][i] - VR[1][i] * VR[1][i] > 0) {
+			a = VR[0][i];
+			b = VR[1][i];
+			c = VR[2][i];
+			d = T[0][0] * VR[0][i] + T[0][1] * VR[1][i] + T[0][2] * VR[2][i];
+			e = T[1][0] * VR[0][i] + T[1][1] * VR[1][i] + T[1][2] * VR[2][i];
+			f = T[2][0] * VR[0][i] + T[2][1] * VR[1][i] + T[2][2] * VR[2][i];
+			break;
+		}
+	}
+	ba = a;
+	bb = b / 2;
+	bc = c;
+	bd = d / 2;
+	bf = e / 2;
+	bg = f;
+	try {
+		CX = (bc * bd - bb * bf) / (bb * bb - ba * bc);
+		CY = (ba * bf - bb * bd) / (bb * bb - ba * bc);
+		Numer = 2 * (ba * bf * bf + bc * bd * bd + bg * bb * bb -
+			2 * bb * bd * bf - ba * bc * bg);
+		Den1 = bb * bb - ba * bc;
+		Den2 = sqrt((ba - bc) * (ba - bc) + 4 * bb * bb) - (ba + bc);
+		Den3 = -sqrt((ba - bc) * (ba - bc) + 4 * bb * bb) - (ba + bc);
+		DX = 2 * sqrt(Numer / (Den1 * Den2));
+		DY = 2 * sqrt(Numer / (Den1 * Den3));
+		/*commented is calculation of ellcipse diameter calculation based on intersection with coordinate system axes (to get not ellipse axes)*/
+//		LY=fabs(sqrt((2*bb*CX+2*bf)*(2*bb*CX+2*bf)-4*bc*(ba*CX*CX+2*bd*CX+bg))/bc);
+//		LX=fabs(sqrt((2*bb*CY+2*bd)*(2*bb*CY+2*bd)-4*ba*(bc*CY*CY+2*bf*CY+bg))/ba);
+		if (bb==0) {
+			if (ba<=bc) {
+			axisAngle=0;
+			} else
+			{
+			axisAngle=90;
+			}
+
+		}else
+		{
+		   axisAngle=(std::atan2((bc-ba)-sqrt((ba - bc) * (ba - bc) + 4 * bb * bb),(2*bb)));
+		}
+
+	  axisDiam.setType(false);
+	  if (DX>DY)
+	  {
+		axisDiam.set({PointN::X,PointN::Y},{DX,DY});
+	  }else
+	  {
+		axisDiam.set({PointN::X,PointN::Y},{DY,DX});
+		axisAngle+=M_PI/2;
+	  }
+
+	  centerPnt.setType(false);
+	  centerPnt.set({PointN::X,PointN::Y},{CX,CY});
+	  return 0;
+
+	} catch (...){
+
+		return -4;
+	}
+
+
+}
+
+
+
+
+
+ /**
+*	\brief calculate centerpoint based on Weizfield  // not  good
+*	\param[in]		DataIn		map of points
+*	\param[out]		centerPnt	ellipse center
+*	\return			 0 - ok
+*	\return	Error 	-1 - not enough points
+*	\return	Error 	-2 - not plausible result
+*/
+int Algorithms::CalcXY0_Weiz(std::map <double,PointN>&DataIn,PointN& centerPnt)
+{
+	double X0=0,Y0=0,M=0;
+	double X0p=0,Y0p=0;
+	float dlt;
+	int itermax=1000;
+	double wght;
+	double dist;
+	double wghtSum;
+	float minWeight=0.0;
+	double Xk,Yk;
+	double X,Y,R,PHI;
+	if(DataIn.size()<2) return -1;
+	X0p=0;Y0p=0;
+	  for (auto& elem:DataIn)
+	  {
+				if(elem.second.getType())
+			{
+				elem.second.get({PointN::R,PointN::PHI},{&R,&PHI});
+				X=R*cos(PHI);
+				Y=R*sin(PHI);
+			} else {elem.second.get({PointN::X,PointN::Y},{&X,&Y});}
+		 X0p+=X;Y0p+=Y;
+	  }
+	  X0p/= DataIn.size();
+	  Y0p=0;
+	do
+	{
+	  wghtSum=0.0;
+	  wght=0.0;
+	  Xk=0;Yk=0;
+
+	  
+	  for (auto& elem:DataIn) 
+	  {
+	   try
+	   {
+			// calculate distances from centerpoint to i-th point
+			if(elem.second.getType())
+			{
+				elem.second.get({PointN::R,PointN::PHI},{&R,&PHI});
+				X=R*cos(PHI);
+				Y=R*sin(PHI);
+			} else {elem.second.get({PointN::X,PointN::Y},{&X,&Y});}
+			dist=std::sqrt(std::pow(X0p-X,2)+std::pow(Y0p-Y,2));
+			// calculate Weizfeld weight and sum of weights for current step
+			if(dist>1e-6) {
+				wght=1/dist; 
+				wghtSum+=wght;
+				Xk+=wght*X;
+				Yk+=wght*Y;
+			}
+	   } catch (...) {}
+	  }
+	  X0=Xk/wghtSum;
+	  Y0=Yk/wghtSum;
+	  dlt=sqrt(pow(X0-X0p,2)+pow(Y0-Y0p,2));
+	  X0p=X0;
+	  Y0p=Y0;
+	  itermax--;
+	}while ((itermax!=0));
+	if((dlt>1)||(std::fabs(X0)>10)||(std::fabs(Y0)>10)) return -2;
+	centerPnt.set({PointN::X,PointN::Y},{X0,Y0});
+	return 0;
+}
+
+ /**
+*	\brief calculate centerpoint based on Window running through signal
+*	\param[in]		DataIn		map of points  (0..2PI)
+*	\param[out]		lndData		vector of maps of points  representing bins (lands) found in the pointcloud
+*	\param[out]		centerPnt	vector of centers
+*	\param[out]		Diams		vector of diameters
+*	\param[in]		wndLen		window width in angle (radians)
+*	\param[in]		wndStedevMax max stdev for window to dicide if it is a border point
+*	\param[in]		binDif		 max difference between a point R and bin R to decide if a new bin is needed
+*	\param[in]		appType		 approximation type 0- circle 1-ellipse
+*	\return			 0 - ok
+*	\return	Error 	-1 - not enough points
+*	\return	Error 	-2 - not plausible result
+*/
+int Algorithms::CalcXY0_Wnd(std::map <double,PointN>&DataIn,
+							std::vector <std::map <double,PointN>>& lndData,
+							std::vector <PointN>& cloudCenters,
+							std::vector<PointN>& Diams,
+							double wndLen,
+							double wndStdevMax,
+							double binDif,
+							int appType
+							) // old pios style
+{
+   
+	alglib::real_1d_array dataWnd;
+	vector <PointN> dataWndV;
+	if(DataIn.size()<100) return -1;
+	cloudCenters.clear();
+	Diams.clear();
+	lndData.clear();
+	for (auto& elem: DataIn)
+	{
+		dataWndV.clear();
+		double strtPHI= elem.first-wndLen/2;
+		double currPHI= elem.first;
+		double endPHI=  elem.first+wndLen/2;
+		// fill window with data that lies in WNDLen angle regarding current PHI
+		if(endPHI>(2*M_PI))
+		{
+			auto itrE=DataIn.lower_bound(endPHI-2*M_PI);
+			if(itrE!=DataIn.end()) for(auto itr=DataIn.begin();itr!=itrE;++itr)
+			   dataWndV.push_back(itr->second);
+
+			auto itrC=DataIn.lower_bound(currPHI);
+			for(auto itr=itrC;itr!=DataIn.end();++itr)
+			   dataWndV.push_back(itr->second);
+		} else
+		{
+			auto itrE=DataIn.lower_bound(endPHI);
+			auto itrC=DataIn.lower_bound(currPHI);
+			for(auto itr=itrC;itr!=itrE;++itr)
+			   dataWndV.push_back(itr->second);
+		}
+		if(strtPHI<0)
+		{
+			auto itrS=DataIn.lower_bound(strtPHI+2*M_PI);
+			if(itrS!=DataIn.end()) for(auto itr=itrS;itr!=DataIn.end();++itr)
+			   dataWndV.push_back(itr->second);
+
+			auto itrC=DataIn.lower_bound(currPHI);
+			for(auto itr=DataIn.begin();itr!=itrC;++itr)
+			   dataWndV.push_back(itr->second);
+		} else
+		{
+			auto itrS=DataIn.lower_bound(strtPHI);
+			auto itrC=DataIn.lower_bound(currPHI);
+			for(auto itr=itrS;itr!=itrC;++itr)
+			   dataWndV.push_back(itr->second);
+		}
+	 if(!dataWndV.empty()) // if window is not empty
+	   {
+		 dataWnd.setlength(dataWndV.size());
+		 int cntr=0;
+		 int dbgI= dataWndV.size();
+		 double R,PHI;
+		 for(auto& elemV: dataWndV)
+		 {
+		   if(elemV.get({PointN::R},{&R})==0) dataWnd[cntr++]=R;
+		 }
+		 double wndStdev=0;
+		 //calculate Stdev of the window. if it is > stdevMax then this is a border point else it is a land point
+		 alglib::sampleadev(dataWnd,wndStdev);
+		 if(wndStdev<wndStdevMax)
+		 {
+			bool flFound= false;
+			// check if current point R is the same as bins last point R  (if current point fits into the bin)
+			for(auto& mapOvVector: lndData)
+			{
+			  auto itrL=mapOvVector.rbegin();
+			  double Rbin;
+			  itrL->second.get({PointN::R},{&Rbin});
+			  elem.second.get({PointN::R,PointN::PHI},{&R,&PHI});
+			  if(std::fabs(R-Rbin)<binDif)
+			  {
+				int dbgSize= mapOvVector.size();
+				mapOvVector.insert({{PHI,{elem.second}}}); // as all points are sorted we are adding a new point to the tail of the map
+				flFound=true;
+				break;//!!!!!
+			  }
+			}
+			if(!flFound) // if no proper bin was found add anew bin and put the point there
+			{
+				lndData.push_back({elem});
+			}
+
+		 }// if wndStdev<wndStdevMax
+
+	   }
+
+	}//auto elem:DataIn
+	/*now we have bins (maps) of points that are from the same diameters (hopefully but not always true) in lndData analyze them*/
+	PointN centerPoint(2),axisDiam(2);
+	double axisAngle,circDiam;
+	for(auto itV=lndData.begin();itV!=lndData.end();)
+	{
+	   int goodLandFlag=false;
+		if (itV->size()>MIN_POINTS_IN_BIN)
+		{
+			  int res;
+			  if (appType==0)
+				{
+					res= CalcCircleLSQ(*itV,centerPoint,circDiam);
+					axisDiam.set({PointN::X,PointN::Y},{circDiam,circDiam});
+				} else
+				{
+					res=CalcEllipseLSQ(*itV,axisDiam,centerPoint,axisAngle);
+				}
+			  if(!res)
+			{
+			/*now its time to analyze somehow that results are correct */
+			  double DX,DY,X0,Y0;
+			  axisDiam.get({PointN::X,PointN::Y},{&DX,&DY});
+			  centerPoint.get({PointN::X,PointN::Y},{&X0,&Y0});
+			  if(((std::fabs(DX-DY)<MAX_AXIS_DIFFERENCE)&&(std::fabs(X0)<MAX_CENTERPOINT_RANGE)&&(std::fabs(Y0)<MAX_CENTERPOINT_RANGE)))
+			  {
+				cloudCenters.push_back(centerPoint);
+				Diams.push_back(axisDiam);
+				goodLandFlag=1;
+			  }
+			}
+		}
+		if(!goodLandFlag)
+		{
+			lndData.erase(itV);
+			continue;
+		}
+		++itV;
+	}
+	/*we have analyzed all the bins and got a vector of calculated centers */
+	if(Diams.size()==0) return -2;
+return 0;
+}
+
+
+
+// Driver function to sort the vector elements
+// number of elements in its map
+bool sortbysize(const std::map<double,PointN> &a,
+			  const std::map<double,PointN> &b)
+{
+	return (a.size() > b.size());
+}
+ /**
+*	\brief calculate centerpoint based on circle approx and then splittin data based on diameter binning  CALCCIRCLELSQ has to be done before this one
+*	\param[in]		DataIn		map of points  (0..2PI)
+*	\param[out]		lndData		vector of maps of points  representing bins (lands) found in the pointcloud
+*	\param[out]		centerPnt	vector of ellipse centers
+*	\param[in]		binDif		 max difference between a point R and bin R to decide if a new bin is needed
+*	\return			 0 - ok
+*	\return	Error 	-1 - not enough points
+*	\return	Error 	-2 - not plausible result
+*/
+int Algorithms::CalcXY0_Hist(std::map <double,PointN>&DataIn,std::vector <std::map <double,PointN>>& lndData,std::vector <PointN>& cloudCenters,double binDif)
+{
+	std::multimap <double,PointN> dataRbased;
+	double R,PHI;
+	//ShowMessage(L"inside hyst: points :" + IntToStr((int)DataIn.size()));
+	/*recalculate map based on radius*/
+	if(DataIn.size()<100) return -1;
+	lndData.clear();
+	for(auto& elemM: DataIn)
+	 {
+		 elemM.second.get({PointN::R},{&R});
+		 dataRbased.insert({{R,{elemM.second}}});
+	 }
+	auto maxR=dataRbased.rbegin()->first;
+	auto minR=dataRbased.begin()->first;
+//	ShowMessage(L"inside hyst: minR MaxR :" + FloatToStrF(minR,ffFixed,10,3) +" ____ "+ FloatToStrF(maxR,ffFixed,10,3));
+//	ShowMessage(L" points before :" + IntToStr((int)DataIn.size()));
+	double currR=minR;
+	/*fill the bins*/
+	while(currR-binDif<=maxR)
+	{
+		 auto minIter=dataRbased.lower_bound(currR-binDif);
+		 auto maxIter=dataRbased.lower_bound(currR+binDif);
+		 if (minIter!=maxIter)
+		 {
+			 if(minIter!=dataRbased.end())
+			 {
+				minIter->second.get({PointN::PHI},{&PHI});
+				lndData.push_back({{PHI,{minIter->second}}});
+				minIter++;
+//				ShowMessage(L"iterator++ "+ FloatToStrF(currR+binDif,ffFixed,10,3)+" ____ "+ FloatToStrF(currR-binDif,ffFixed,10,3) );
+				for(auto iter=minIter;iter!=maxIter; ++iter)
+				{
+					iter->second.get({PointN::PHI},{&PHI});
+					lndData.back().insert({{PHI,{iter->second}}});
+				}
+//					ShowMessage(L" points inserted :" + IntToStr((int)lndData.back().size()));
+//				ShowMessage(L"pushed all points ");
+
+			  PointN axisDiam(2);
+			  PointN centers(2);
+			  double axisAngle;
+			  try
+			  {
+				  if(!CalcEllipseLSQ(lndData.back(),axisDiam,centers,axisAngle) )
+				  {
+					cloudCenters.push_back(centers);
+				  } else
+				  {
+					lndData.pop_back();
+				  }
+			  }catch(...) {/*ShowMessage(L"catched ellipse exception");*/ }
+			 }
+		 }
+		 currR+=2*binDif;
+	}
+	/*sort bins descending*/
+ //	ShowMessage(L"land data inside hyst:" + IntToStr((int)lndData.size()));
+	if(lndData.size()==0)return -2;
+
+	std::sort(lndData.begin(),lndData.end(),sortbysize);
+	return 0;
+}
+
+ /**
+*	\brief calculate Polynomial fit
+*	\param[in]		resX		array of measured values
+*	\param[in]		resY		array of realworld values (nominals, real diameters,etc)
+*	\param[in]		N			polynom degree+1 = number of poly coeffs
+*	\param[out]		a			polynom coeffs
+*	\return			 0 - ok
+*	\return	Error 	-1 - not enough points (or different lengths of resX resY)
+*	\return	Error 	-2 - not plausible result
+*/
+
+int Algorithms::CalibPoly(const alglib::real_1d_array &resX, const alglib::real_1d_array &resY, alglib::ae_int_t N, alglib::real_1d_array &a)
+{
+	alglib::ae_int_t pNum = resX.length();
+	if(pNum != resX.length())
+		return -1;
+
+	alglib::ae_int_t info;
+	alglib::barycentricinterpolant b;
+	alglib::polynomialfitreport rep1;
+	alglib::polynomialfit(resX, resY, pNum, N, info, b, rep1);
+
+	if(info <= 0) return -2;
+
+	alglib::polynomialbar2pow(b, a);
+	return 0;
+}
+
+
+/**
+*	\brief calculate Land or Groove widths
+*	\param[in]		DataInRaw		map of Raw Input data
+*	\param[in]		DataInParsed	map of land or groove parsed data
+*	\param[in]		diam		   	diameter where to search for widths
+*	\param[in]		MinGap		   	minimum gap to search for
+*	\param[out]		OutData			vector of pair of points each groove|land start end
+*	\param[out]		WidthData	   	vector of width of each groove|land
+
+*	\return			 0 - ok
+*	\return	Error 	-1 - not enough points (or different lengths of resX resY)
+*	\return	Error 	-2 - not plausible result
+*/
+
+int Algorithms::CalcGaps(std::map <double,PointN>& DataIn,
+						 std::map <double,PointN>& DataInParsed,
+						 PointN& CenterPt,
+						 double diam,
+						 double minGap,
+						 std::vector <std::pair<PointN,PointN>>& WidthPts,
+						 std::vector<double> WidthData)
+{
+	double X0,Y0,PHI,R;
+	////////////////////////////////
+	/*search range 	+-2deg		  */
+	double srchRange=2*M_PI/180;
+	///////////////////////////////
+	double minGapRad=minGap*2/diam;
+	std::map <double,PointN> DataInC;
+	std::map <double,PointN> DataInParsedC;
+	std::vector <std::pair<PointN,PointN>> OutData;
+	PointN tmpPt(2);
+	PointN dummPt({0,0},true);
+ /*First remove decentering from both clouds*/
+	CenterPt.get({PointN::X,PointN::Y},{&X0,&Y0});
+	if(std::fabs(X0)>0.1||std::fabs(Y0)>0.1)
+	{
+		for(auto& elemM:DataIn)
+		{
+			tmpPt=elemM.second;
+			tmpPt-=CenterPt;
+			tmpPt.get({PointN::PHI},{&PHI});
+			DataInC.insert({PHI,tmpPt});
+		}
+		for(auto& elemM:DataInParsed)
+		{
+			tmpPt=elemM.second;
+			tmpPt-=CenterPt;
+			tmpPt.get({PointN::PHI},{&PHI});
+			DataInParsedC.insert({PHI,tmpPt});
+		}
+	} else
+	{
+		DataInC=DataIn;
+		DataInParsedC=DataInParsed;
+	}
+/*Iterate through parsed map to find holes larger then minGap*/
+
+	double phiOld;
+	bool looseBack=false;
+	PointN looseBackPt({0,0},true);
+
+	for(auto& elemM:DataInParsedC)
+	{
+		auto endPHI=elemM.first+minGapRad;
+		auto currPHI=elemM.first;
+		auto strtPHI=elemM.first-minGapRad;
+		/*now find if any of points fall in this area*/
+		bool ptsUpFound=false;
+		bool ptsDnFound=false;
+
+			if(endPHI>(2*M_PI))
+		{
+			auto itrE=DataInParsedC.lower_bound(endPHI-2*M_PI);
+			for(auto itr=DataInParsedC.begin();itr!=itrE;++itr)
+			{
+			   ptsUpFound=true;
+			   break;
+			}
+			if(!ptsUpFound)
+			{
+				auto itrC=DataInParsedC.upper_bound(currPHI);
+				if(itrC!=DataInParsedC.end()) ptsUpFound=true;
+			}
+
+		} else
+		{
+			auto itrE=DataInParsedC.lower_bound(endPHI);
+			auto itrC=DataInParsedC.upper_bound(currPHI);
+			for(auto itr=itrC;itr!=itrE;++itr)
+			{
+			   ptsUpFound=true;
+			   break;
+			}
+		}
+
+		if(strtPHI<0)
+		{
+			auto itrS=DataInParsedC.lower_bound(strtPHI+2*M_PI);
+			if(itrS!=DataIn.end()) {ptsDnFound=true;} else
+				{
+					auto itrC=DataInParsedC.lower_bound(currPHI);
+					for(auto itr=DataInParsedC.begin();itr!=itrC;++itr)
+					{
+						ptsDnFound=true;
+						break;
+					}
+				}
+		} else
+		{
+			auto itrE=DataInParsedC.lower_bound(strtPHI);
+			auto itrC=DataInParsedC.lower_bound(currPHI);
+			for(auto itr=itrC;itr!=itrE;++itr)
+			{
+			   ptsDnFound=true;
+			   break;
+			}
+		}
+
+		/*if no points found around this point its an outlier*/
+		if((!ptsUpFound)&&(!ptsDnFound)) continue;
+		/*if no points before this point found it is the start point of Land */
+		if(!ptsDnFound)
+		{
+			OutData.push_back({elemM.second,dummPt});
+			continue;
+		}
+		/*if no points after this point found it is the end point of Land */
+		if(!ptsUpFound)
+		{
+			if(OutData.empty()) { looseBackPt=elemM.second; looseBack=true; continue;}
+			OutData.back().second=elemM.second;
+			continue;
+		}
+
+
+
+
+	}
+	/*if we found a endpoint befor startpoint that means land is on the border PHI=0 so last found beginning would have no end*/
+	if(looseBack) OutData.back().second=looseBackPt;
+	/*Here we have a vector of lands begining/end points now find points in the main map that correspond to diameter set*/
+	if(OutData.size()<=1) return -2;
+
+	double strtPhi,strtR,endPhi,endR,avgD;
+	for(auto& elemV: OutData)
+	{
+	   elemV.first.get({PointN::PHI,PointN::R},{&strtPhi,&strtR});
+	   elemV.second.get({PointN::PHI,PointN::R},{&endPhi,&endR});
+	   avgD=(strtR+endR);
+	   auto	itrStrtS=DataIn.lower_bound(strtPhi);
+	   auto	itrStrtE=DataIn.lower_bound(strtPhi-srchRange);
+	   if(itrStrtE==DataIn.end()) itrStrtE= DataIn.begin();
+	   auto ritrStrtS=std::make_reverse_iterator(itrStrtS);
+	   auto ritrStrtE=std::make_reverse_iterator(itrStrtE);
+
+	   auto	itrEndS=DataIn.lower_bound(endPhi);
+	   auto	itrEndE=DataIn.lower_bound(endPhi+srchRange);
+
+	   WidthPts.push_back(elemV);
+	/*if diameter is less then diam(IN) then this is a land otherwise a groove*/
+	   double PhiLow,RLow,PhiHigh,RHigh;
+	   if(avgD<=diam)
+	   {
+		bool ptFoundS=false;
+		PhiLow=strtPhi; RLow=strtR; // set these to current point if the next point is over the edge and PhiLow=PHI;RLow=R; wouldnt play
+		for(auto itr=ritrStrtS;itr!=ritrStrtE;++itr)
+		{
+
+			itr->second.get({PointN::PHI,PointN::R},{&PHI,&R});
+			if(2*R<diam)
+			{PhiLow=PHI;RLow=R;} else {PhiHigh=PHI;RHigh=R;ptFoundS=true; break;}
+		}
+		/*if corresponding point was found calculate f(diam)*/
+		if(ptFoundS)
+		{
+		   double den=(PhiHigh-PhiLow);
+		   if(den!=0.0)
+		   {
+				double k=(RHigh-RLow)/den;
+				double b=RLow-k*PhiLow;
+				/*store result to PHI0 R0*/
+				R= diam/2;
+				PHI=(R-b)/k;
+				WidthPts.back().first.set({PointN::PHI,PointN::R},{PHI,R});
+		   }
+		}
+		bool ptFoundE=false;
+		PhiLow=endPhi; RLow=endR;
+		for(auto itr=itrEndS;itr!=itrEndE;++itr)
+		{
+
+			itr->second.get({PointN::PHI,PointN::R},{&PHI,&R});
+			if(2*R<diam)
+			{PhiLow=PHI;RLow=R;} else {PhiHigh=PHI;RHigh=R;ptFoundE=true; break;}
+		}
+		/*if corresponding point was found calculate f(diam)*/
+		if(ptFoundE)
+		{
+		   double den=(PhiHigh-PhiLow);
+		   if(den!=0.0)
+		   {
+				double k=(RHigh-RLow)/den;
+				double b=RLow-k*PhiLow;
+				/*store result to PHI0 R0*/
+				R= diam/2;
+				PHI=(R-b)/k;
+				WidthPts.back().second.set({PointN::PHI,PointN::R},{PHI,R});
+		   }
+		}
+
+
+
+	   } else // avgD<=diam
+	   {
+		bool ptFoundS=false;
+		for(auto itr=ritrStrtS;itr!=ritrStrtE;++itr)
+		{
+
+			itr->second.get({PointN::PHI,PointN::R},{&PHI,&R});
+			if(2*R>diam)
+			{PhiLow=PHI;RLow=R;} else {PhiHigh=PHI;RHigh=R;ptFoundS=true; break;}
+		}
+		/*if corresponding point was found calculate f(diam)*/
+		if(ptFoundS)
+		{
+		   double den=(PhiHigh-PhiLow);
+		   if(den!=0.0)
+		   {
+				double k=(RHigh-RLow)/den;
+				double b=RLow-k*PhiLow;
+				/*store result to PHI0 R0*/
+				R= diam/2;
+				PHI=(R-b)/k;
+				WidthPts.back().first.set({PointN::PHI,PointN::R},{PHI,R});
+		   }
+		}
+		bool ptFoundE=false;
+		for(auto itr=itrEndS;itr!=itrEndE;++itr)
+		{
+
+			itr->second.get({PointN::PHI,PointN::R},{&PHI,&R});
+			if(2*R>diam)
+			{PhiLow=PHI;RLow=R;} else {PhiHigh=PHI;RHigh=R;ptFoundE=true; break;}
+		}
+		/*if corresponding point was found calculate f(diam)*/
+		if(ptFoundE)
+		{
+		   double den=(PhiHigh-PhiLow);
+		   if(den!=0.0)
+		   {
+				double k=(RHigh-RLow)/den;
+				double b=RLow-k*PhiLow;
+				/*store result to PHI0 R0*/
+				R= diam/2;
+				PHI=(R-b)/k;
+				WidthPts.back().second.set({PointN::PHI,PointN::R},{PHI,R});
+		   }
+		}
+
+
+	   } // avgD<=diam
+
+		/*Here we have calculated points for each land or groove, calculate its width*/
+		double X0,Y0,X1,Y1,W;
+		WidthPts.back().first.get({PointN::PHI,PointN::R},{&PHI,&R});
+		X0=R*cos(PHI);
+		Y0=R*sin(PHI);
+		WidthPts.back().second.get({PointN::PHI,PointN::R},{&PHI,&R});
+		X1=R*cos(PHI);
+		Y1=R*sin(PHI);
+		try{
+			W=sqrt((X1-X0)*(X1-X0)+(Y1-Y0)*(Y1-Y0));
+			WidthData.push_back(W);
+		} catch(...) {WidthData.push_back(0);}
+	}
+
+}
+/**
+*	\brief compensate elleptical form of signal due to probe misalignment
+*	\param[in]		DataIn			map of raw data which will be used for diameter calculations
+*	\param[out]		DataOut			map of output data
+*	\return			 0 - ok
+*	\return	Error 	-1 - bad ellipse parameters
+*	\return	Error 	-2 - not plausible result
+*/
+
+int Algorithms::CompensateSelfEllipse(std::map <double,PointN>& DataIn,std::map <double,PointN>& DataOut,double binDif)
+{
+	/*First calculate histogram of R*/
+	std::multimap <double,PointN> dataRbased;
+	std::vector <std::map <double,PointN>> lndData;
+	double R,PHI;
+	/*recalculate map based on radius*/
+	if(DataIn.size()<100) return -1;
+	for(auto& elemM: DataIn)
+	 {
+		 elemM.second.get({PointN::R},{&R});
+		 dataRbased.insert({{R,{elemM.second}}});
+	 }
+	auto maxR=dataRbased.rbegin()->first;
+	auto minR=dataRbased.begin()->first;
+	double currR=minR;
+	/*fill the bins*/
+	while(currR-binDif<=maxR)
+	{
+		 auto minIter=dataRbased.lower_bound(currR-binDif);
+		 auto maxIter=dataRbased.lower_bound(currR+binDif);
+		 if (minIter!=maxIter)
+		 {
+			 if(minIter!=dataRbased.end())
+			 {
+				minIter->second.get({PointN::PHI},{&PHI});
+				lndData.push_back({{PHI,{minIter->second}}});
+				minIter++;
+				for(auto iter=minIter;iter!=maxIter; ++iter)
+				{
+					iter->second.get({PointN::PHI},{&PHI});
+					lndData.back().insert({{PHI,{iter->second}}});
+				}
+			  PointN axisDiam(2);
+			  PointN centers(2);
+			  double axisAngle;
+			  }
+		 }
+		 currR+=2*binDif;
+	}
+	if(lndData.size()==0)return -2;
+	std::sort(lndData.begin(),lndData.end(),sortbysize);
+
+	PointN ellDiam(2);
+	PointN ellCenter(2);
+	double ellAngle;
+
+
+
+	if(CalcEllipseLSQ(lndData.front(),ellDiam,ellCenter,ellAngle) ) return -1;
+
+   double Xo,Yo,PHI_,R_;
+   ellCenter.get({PointN::X,PointN::Y},{&Xo,&Yo});
+   double DX,DY;
+
+   ellDiam.get({PointN::X,PointN::Y},{&DX,&DY});
+   if(DX==0.0 || DY==0.0) return -1;
+   double X,Y,Xr,Yr;
+   DataOut.clear();
+
+   for(auto elemM: DataIn )
+   {
+		elemM.second.get({PointN::R,PointN::PHI},{&R,&PHI});
+		X=R*cos(PHI);
+		Y=R*sin(PHI);
+		X-=Xo;
+		Y-=Yo;
+		Xr=X*cos(-ellAngle)-Y*sin(-ellAngle);
+		Yr=X*sin(-ellAngle)+Y*cos(-ellAngle);
+
+		R_=hypot(Xr,Yr);
+		PHI_= atan2(Yr,Xr);
+		if(PHI_<0) PHI_+=2*M_PI;
+
+		X=DX/2*cos(PHI_);
+		Y=DY/2*sin(PHI_);
+
+		R_=R_ - hypot(X,Y)/*+DY/2*/;
+		PHI_+=ellAngle;
+		if(PHI_>2*M_PI) PHI_-=2*M_PI;
+		if(PHI_<0) PHI_+=2*M_PI;
+		DataOut.insert({PHI_,{{PHI_,R_},true}});
+   }
+	return 0;
+}
+
+/**
+*	\brief calculate land or groove diameter based on its center part (for rounded grooves)
+*	\param[in]		DataIn			map of raw data which will be used for diameter calculations
+*	\param[in]		DataInParsed	map of land or groove parsed data
+*	\param[out]		DataOut		   	points used for diameter calculation
+*	\param[in]		MinGap		   	minimum gap to search for in deg
+*	\param[in]		CenterEpsilon	    epsylon region near the land|groove center to take points into account in deg
+*	\param[out]		DiamData	   	diameter of  grooves|lands
+
+*	\return			 0 - ok
+*	\return	Error 	-1 - not enough points (or different lengths of resX resY)
+*	\return	Error 	-2 - not plausible result
+*/
+
+int Algorithms::CalcFlatsDiameters( std::map <double,PointN>& DataIn,
+						 std::map <double,PointN>& DataInParsed,
+						 std::map <double,PointN>& DataOut,
+						 double minGap,
+						 double centerEpsilon,
+						 PointN& DiamData)
+{
+	double X0,Y0,PHI,R;
+	////////////////////////////////
+	/*search range 	+-2deg		  */
+	double srchRange=2*M_PI/180;
+	///////////////////////////////
+	double minGapRad=minGap*M_PI/180;
+	double centerEpsilonRad=centerEpsilon*M_PI/180;
+	std::map <double,PointN> DataInParsedC;
+	//std::map <double,PointN> centersOfFlats;
+	std::vector <std::pair<PointN,PointN>> OutData;
+	PointN tmpPt(2);
+	PointN dummPt({0,0},true);
+
+	DataInParsedC=DataInParsed;
+    DataOut.clear();
+/*Iterate through parsed map to find holes larger then minGap*/
+
+	double phiOld;
+	bool looseBack=false;
+	PointN looseBackPt({0,0},true);
+
+	for(auto& elemM:DataInParsedC)
+	{
+		auto endPHI=elemM.first+minGapRad;
+		auto currPHI=elemM.first;
+		auto strtPHI=elemM.first-minGapRad;
+		/*now find if any of points fall in this area*/
+		bool ptsUpFound=false;
+		bool ptsDnFound=false;
+
+			if(endPHI>(2*M_PI))
+		{
+			auto itrE=DataInParsedC.lower_bound(endPHI-2*M_PI);
+			for(auto itr=DataInParsedC.begin();itr!=itrE;++itr)
+			{
+			   ptsUpFound=true;
+			   break;
+			}
+			if(!ptsUpFound)
+			{
+				auto itrC=DataInParsedC.upper_bound(currPHI);
+				if(itrC!=DataInParsedC.end()) ptsUpFound=true;
+			}
+
+		} else
+		{
+			auto itrE=DataInParsedC.lower_bound(endPHI);
+			auto itrC=DataInParsedC.upper_bound(currPHI);
+			for(auto itr=itrC;itr!=itrE;++itr)
+			{
+			   ptsUpFound=true;
+			   break;
+			}
+		}
+
+		if(strtPHI<0)
+		{
+			auto itrS=DataInParsedC.lower_bound(strtPHI+2*M_PI);
+			if(itrS!=DataInParsedC.end()) {ptsDnFound=true;} else
+				{
+					auto itrC=DataInParsedC.lower_bound(currPHI);
+					for(auto itr=DataInParsedC.begin();itr!=itrC;++itr)
+					{
+						ptsDnFound=true;
+						break;
+					}
+				}
+		} else
+		{
+			auto itrE=DataInParsedC.lower_bound(strtPHI);
+			auto itrC=DataInParsedC.lower_bound(currPHI);
+			for(auto itr=itrC;itr!=itrE;++itr)
+			{
+			   ptsDnFound=true;
+			   break;
+			}
+		}
+
+		/*if no points found around this point its an outlier*/
+		if((!ptsUpFound)&&(!ptsDnFound)) continue;
+		/*if no points before this point found it is the start point of Land */
+		if(!ptsDnFound)
+		{
+			OutData.push_back({elemM.second,dummPt});
+			continue;
+		}
+		/*if no points after this point found it is the end point of Land */
+		if(!ptsUpFound)
+		{
+			if(OutData.empty()) { looseBackPt=elemM.second; looseBack=true; continue;}
+			OutData.back().second=elemM.second;
+			continue;
+		}
+
+
+
+
+	}
+	/*if we found a endpoint befor startpoint that means land is on the border PHI=0 so last found beginning would have no end*/
+	if(looseBack) OutData.back().second=looseBackPt;
+	/*Here we have a vector of lands begining/end points now find points in the main map that correspond to diameter set*/
+	if(OutData.size()<=1) return -2;
+	/*Now iterate through the found points vector to calculate center points*/
+	for(auto& elemV:OutData)
+	{
+	  double strtPHI,endPHI;
+	  int cross=0;
+	  elemV.first.get({PointN::PHI},{&strtPHI});
+	  elemV.second.get({PointN::PHI},{&endPHI});
+//	  String str1=L"pair " + FloatToStr(strtPHI)+ L"    " +FloatToStr(endPHI);
+//	  OutputDebugStringW(str1.c_str());
+	/*Situation when we cross zero*/
+	  if(strtPHI>endPHI) strtPHI-=2*M_PI;
+//	  double strtLnd=(strtPHI+endPHI)/2 - centerEpsilonRad/2;
+	  double strtLnd=strtPHI + centerEpsilonRad;
+	  if(strtLnd<0)strtLnd+=2*M_PI;
+//	  double endLnd=(strtPHI+endPHI)/2 + centerEpsilonRad/2;
+	  double endLnd=endPHI - centerEpsilonRad;
+
+	  if(endLnd<0)endLnd+=2*M_PI;
+//	  if(strtLnd>endLnd) cross=1;
+	  if(fabs(strtPHI-endPHI)<2*centerEpsilonRad) {strtLnd=strtPHI; endLnd=endPHI; }
+	  if((strtLnd>endLnd)&& (fabs(strtLnd-endLnd)>2*centerEpsilonRad)) cross=1;
+
+		auto itrS=DataIn.lower_bound(strtLnd);
+		auto itrE=DataIn.lower_bound(endLnd);
+	  if(!cross)
+	  {
+		for(auto itr=itrS;itr!=itrE;++itr)
+		{
+			DataOut.insert(*itr);
+		}
+	  } else
+	  {
+		for(auto itr=itrS;itr!=DataIn.end();++itr)
+		{
+			DataOut.insert(*itr);
+		}
+		for(auto itr=DataIn.begin();itr!=itrE;++itr)
+		{
+			DataOut.insert(*itr);
+		}
+
+
+	  }
+	}
+	double axisAngl;
+	int res=CalcEllipseLSQ(DataOut,DiamData,dummPt,axisAngl);
+//	double diamCrcl;
+//	int	res= CalcCircleLSQ(DataOut,dummPt,diamCrcl);
+//	DiamData.set({PointN::X,PointN::Y},{diamCrcl,diamCrcl});
+//	double diamCrcl;
+//	int res= CalcMEC_CGAL(DataOut,dummPt,diamCrcl);
+//	DiamData.set({PointN::X,PointN::Y},{diamCrcl,diamCrcl});
+	if(!res) return 0; else return -2;
+
+}
+void Algorithms::ConvertMapToSet(const std::map<double, PointN> &map, std::set<PointN> &set)
+{
+    std::transform(map.cbegin(), map.cend(),
+                   std::inserter(set, set.begin()),
+                   [](const std::pair<double, PointN> &value)
+                   { return value.second; });
+}
+

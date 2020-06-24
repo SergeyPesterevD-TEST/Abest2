@@ -1,0 +1,43 @@
+#include "filters.h"
+#include "fdacoefs.h"
+
+/**
+*	\brief apply lowpass FIR circular filter from fdacoefs length is 96
+*   \param	Data	vector of data to filter
+*	\return			 0 - ok
+*	\return	Error:	-1 - length of data is less then filter length
+*/
+int  Filter::FIR_filter_96(std::map <double,PointN>& DataIn,std::map <double,PointN>& DataOut )
+{
+	std::vector<std::pair<double,double>> buff;
+	double R;
+	int lenD=DataIn.size();
+	if(lenD<BL) return -1;
+	//filter forward
+	int i=0;
+	for (std::map <double,PointN>::iterator itr=DataIn.begin();itr!=DataIn.end();++itr)
+	{
+		auto itr1=itr;
+		buff.push_back({itr->first,0});
+		for(int j=0;j<BL;j++)
+		{
+		  itr1->second.get({PointN::R},{&R});
+		  buff.back()   +=R*B[BL-j-1];
+		  if(itr1==DataIn.begin()) itr1=DataIn.end();
+		  itr1--;
+		}
+	}
+
+	//	 filter backward
+	for (auto itr=buffR.rbegin();itr=buffR.rend();++itr)
+	{
+		auto itr1=itr;
+		DataOut.insert()
+		for(int j=0;j<BL;j++)
+		{
+			if ((i+j)<lenD-1)Data[i]+=buff[i+j]*B[j];
+		}
+	}
+
+	return 0;
+}

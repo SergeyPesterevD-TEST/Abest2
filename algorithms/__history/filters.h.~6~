@@ -1,0 +1,14 @@
+#ifndef FILTERS_H
+#define FILTERS_H
+#include <vector>
+#include <map>
+#include "pointn.h"
+class Filter
+{
+	public:
+	int FIR_filter_96(std::map <double,PointN>& DataIn,std::map <double,PointN>& DataOut );
+	private:
+	protected:
+};
+
+#endif // FILTERS_H
