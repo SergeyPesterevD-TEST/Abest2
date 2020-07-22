@@ -5,6 +5,7 @@
 #include <QMainWindow>
 #include <QTimer>
 #include "windows.h"
+#include "objbase.h"
 #include "inisettings.h"
 #include "tsetupform.h"
 #include "rfthread.h"
@@ -35,6 +36,7 @@ public:
     IniSettings INIFile;
     QVector<int> Measures;
     QVector<SqlModule::Top100> Top100Measures;
+    QVector<SqlModule::Top100> LastMeasures;
     QVector<SqlModule::Top100> FilterMeasures;
 
 public slots:
@@ -48,10 +50,14 @@ private slots:
 
     void makePlot();
 
-    void RepaintRiftek(QVector<SqlModule::Top100> *Top100Measures);
+    void RepaintRiftek(QVector<SqlModule::Top100> *Top100Measures); 
 
+    void FilterRiftek(QVector<SqlModule::Top100> *Top100Measures, QVector<int> *CurrentData);
     void FilterRiftek2(QVector<SqlModule::Top100> *Top100Measures);
 
+    void GetLIR(unsigned long *LIR, QDateTime *LIRTIME);
+
+    void RefillTableRiftek2(QVector<int> *CurrentData, QVector<int> *Measures);
     void RefillTableRiftek(QVector<SqlModule::Top100> *Top100Measures, QVector<int> *Measures);
 
     void on_pushButtonStart_clicked();
@@ -84,6 +90,10 @@ private slots:
 
     QColor GetColorForChannel(int i);
 
+    void lamp(int i);
+
+    void on_pushButton_clicked();
+
 private:
 
     QThread RFThreadThread;
@@ -92,8 +102,15 @@ private:
     QVector<ToFilter> Filter;
     ToFilter FilterOne;
     int FilterCount;
+    int MainCounter;
+    BOOL beep;
     //
     SqlModule *SQLConnection;
+    //
+    unsigned long lastLIR;
+    unsigned long zeroLIR;
+    int lastLAMP;
+    QDateTime lastLIRTIME;
     //
     QTimer *timer;  //опрос рифтэк
     QTimer *timer2; //прорисовка фильтра

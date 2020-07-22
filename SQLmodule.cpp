@@ -69,6 +69,56 @@ int SqlModule::SqlGetLast(int GetCount, int GetHours, QVector<Top100> *Top100Mea
 
 }
 
+int SqlModule::SqlPutMeasure2(QString rulon, QVector<int> *CurrentData,
+                              float LIR, float SPEED)
+{
+    float ThickValue;
+    IniSettings *INIFile =new IniSettings;
+    QString ServerName=INIFile->GetParamStr("SQL/ServerName");
+    QString dbName=INIFile->GetParamStr("SQL/DBName");
+    QSqlDatabase db = QSqlDatabase::addDatabase("QODBC");
+    db.setConnectOptions();
+    QString dsn=INIFile->GetParamStr("SQL/DSN").arg(ServerName).arg(dbName);
+    db.setDatabaseName(dsn);
+    if (db.open())
+    {
+          QString sQuery;
+          sQuery = "INSERT INTO ["+dbName+"].[dbo].[Measures]";
+          sQuery = sQuery + " ([rulon],[cdatetime],[c1],[c2],[c3],[c4],[c5],[c6],[LIR],[SPEED])";
+          sQuery = sQuery + " VALUES (";
+          sQuery = sQuery + "'"+rulon+"',";
+          QDateTime CurrentDateTime=QDateTime::currentDateTime();
+          sQuery = sQuery + "'"+CurrentDateTime.toString(Qt::ISODate)+"',";
+
+          for (int i=0; i<INIFile->GetParam("Main/NumberOfPairs"); i++)
+          {
+          ThickValue=CurrentData->data()[i];
+          sQuery = sQuery + "'"+QString::number(ThickValue,'f',3)+"'";
+          sQuery = sQuery + ",";
+          }
+          sQuery = sQuery + "'"+QString::number(LIR,'f',3)+"'";
+          sQuery = sQuery + ",";
+          sQuery = sQuery + "'"+QString::number(SPEED,'f',3)+"'";
+          sQuery = sQuery + ");";
+
+          delete(INIFile);
+          QSqlQuery Qry;
+          //if (ThickValue>0)
+            {
+            if (Qry.exec(sQuery))
+              {
+    //            qDebug() << "INSERT OK ";
+              } else qDebug() << "INSERT SQL Query is _NOT_ OK ";
+          //qDebug() << sQuery;
+            }
+          db.close();
+    } else
+    {
+          delete(INIFile);
+          qDebug() << "ERROR: " << db.lastError().text();
+    }
+}
+
 int SqlModule::SqlPutMeasure(QString rulon, QVector<int> *Measures)
 {
 float ThickValue;
