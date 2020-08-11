@@ -35,6 +35,7 @@ public:
 
     IniSettings INIFile;
     QVector<int> Measures;
+    QVector<float> AverageRowMeasures;
     QVector<SqlModule::Top100> Top100Measures;
     QVector<SqlModule::Top100> LastMeasures;
     QVector<SqlModule::Top100> FilterMeasures;
@@ -90,7 +91,7 @@ private slots:
 
     QColor GetColorForChannel(int i);
 
-    void lamp(int i);
+    void lamp(int i, bool force);
 
     void on_pushButton_clicked();
 

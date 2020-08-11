@@ -13,7 +13,10 @@ TSetupForm::TSetupForm(QWidget *parent) :
 
     ui->MinBox->setValue((double)INIFile->GetParam("Plot/Ymin")/10);
     ui->MaxBox->setValue((double)INIFile->GetParam("Plot/Ymax")/10);
+    ui->MinSpeed->setValue((double)INIFile->GetParam("Plot/SYmin")/10);
+    ui->MaxSpeed->setValue((double)INIFile->GetParam("Plot/SYmax")/10);
     ui->HowManyHours->setValue(INIFile->GetParam("Plot/Xhours"));
+    ui->AverageRowMin->setValue(INIFile->GetParam("Main/AverageRow"));
     UpdateMinMax();
 
     delete(INIFile);
@@ -30,7 +33,11 @@ void TSetupForm::on_SaveButton_clicked()
     IniSettings *INIFile = new IniSettings;
     INIFile->SetParam("Plot/Ymin",ui->MinBox->value()*10);
     INIFile->SetParam("Plot/Ymax",ui->MaxBox->value()*10);
+    INIFile->SetParam("Plot/SYmin",ui->MinSpeed->value()*10);
+    INIFile->SetParam("Plot/SYmax",ui->MaxSpeed->value()*10);
     INIFile->SetParam("Plot/Xhours",ui->HowManyHours->value());
+    INIFile->SetParam("Main/AverageRow",ui->AverageRowMin->value());
+
     delete(INIFile);
 
     this->close();

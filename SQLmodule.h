@@ -23,10 +23,13 @@ public:
     QDateTime    cdatetime;
     QString      rulon;
     QVector<int> data;
+    float LIR;
+    float SPEED;
     };
 
     int SqlConnect();
     int SqlGetLast(int GetCount, int GetHours, QVector<Top100> *Top100Measures);
+    int SqlGetAverageRow(int Minutes,  QVector<float> *AverageRowMeasures);
     int SqlPutMeasure(QString rulon, QVector<int> *Measures);
     int SqlPutMeasure2(QString rulon, QVector<int> *CurrentData, float LIR, float SPEED);
 

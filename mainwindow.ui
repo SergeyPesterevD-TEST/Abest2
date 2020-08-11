@@ -154,7 +154,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Настройка по OY</string>
+     <string>Настройки</string>
     </property>
    </widget>
    <widget class="QCustomPlot" name="customPlot" native="true">
@@ -163,7 +163,7 @@
       <x>10</x>
       <y>245</y>
       <width>1001</width>
-      <height>521</height>
+      <height>381</height>
      </rect>
     </property>
    </widget>
@@ -191,9 +191,9 @@
     </property>
     <property name="font">
      <font>
-      <pointsize>10</pointsize>
-      <weight>50</weight>
-      <bold>false</bold>
+      <pointsize>12</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
       <underline>true</underline>
      </font>
     </property>
@@ -215,9 +215,9 @@
     </property>
     <property name="font">
      <font>
-      <pointsize>10</pointsize>
-      <weight>50</weight>
-      <bold>false</bold>
+      <pointsize>12</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
       <underline>true</underline>
      </font>
     </property>
@@ -393,7 +393,7 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>380</x>
+      <x>390</x>
       <y>10</y>
       <width>111</width>
       <height>31</height>
@@ -429,19 +429,19 @@
      <rect>
       <x>300</x>
       <y>50</y>
-      <width>71</width>
+      <width>90</width>
       <height>16</height>
      </rect>
     </property>
     <property name="text">
-     <string>Скорость, м/с</string>
+     <string>Скорость, м/мин</string>
     </property>
    </widget>
    <widget class="QLineEdit" name="SPEEDedit">
     <property name="geometry">
      <rect>
-      <x>380</x>
-      <y>43</y>
+      <x>390</x>
+      <y>40</y>
       <width>111</width>
       <height>31</height>
      </rect>
@@ -469,6 +469,16 @@
     </property>
     <property name="text">
      <string>СБРОС ДЛИНЫ</string>
+    </property>
+   </widget>
+   <widget class="QCustomPlot" name="customPlotSpeed" native="true">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>630</y>
+      <width>1001</width>
+      <height>111</height>
+     </rect>
     </property>
    </widget>
   </widget>

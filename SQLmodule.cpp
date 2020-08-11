@@ -55,9 +55,69 @@ int SqlModule::SqlGetLast(int GetCount, int GetHours, QVector<Top100> *Top100Mea
                         }
                   Top100Measures->push_back(OneMeasure);
                   //Top100Measures->push_front(OneMeasure);
-
+                  OneMeasure.LIR=Qry.value(8).toReal();
+                  OneMeasure.SPEED=60*Qry.value(9).toReal();
               }
           } else qDebug() << "SELECT SQL Query is _NOT_ OK ";
+          //qDebug() << sQuery;
+          db.close();
+          delete(INIFile);
+    } else
+    {
+          delete(INIFile);
+          qDebug() << "ERROR: " << db.lastError().text();
+    }
+
+}
+
+int SqlModule::SqlGetAverageRow(int Minutes,  QVector<float> *AverageRowMeasures)
+{
+    IniSettings *INIFile =new IniSettings;
+    QVector <int> CountVector;
+    QString ServerName=INIFile->GetParamStr("SQL/ServerName");
+    QString dbName=INIFile->GetParamStr("SQL/DBName");
+    QSqlDatabase db = QSqlDatabase::addDatabase("QODBC");
+    db.setConnectOptions();
+    QString dsn=INIFile->GetParamStr("SQL/DSN").arg(ServerName).arg(dbName);
+    db.setDatabaseName(dsn);
+    if (db.open())
+    {
+          QString sQuery;
+          sQuery = "SELECT * FROM ["+dbName+"].[dbo].[Measures] WHERE cdatetime>='"+QDateTime::currentDateTime().addSecs(-60*Minutes).toString(Qt::ISODate)
+                  +"' AND cdatetime<='"+QDateTime::currentDateTime().toString(Qt::ISODate)+"' ORDER BY cdatetime DESC;";
+          //qDebug() << sQuery;
+          QSqlQuery Qry;
+          if (Qry.exec(sQuery))
+          {
+              Qry.last();
+              AverageRowMeasures->clear();
+              CountVector.clear();
+              for (int i=0; i<INIFile->GetParam("Main/NumberOfPairs");i++)
+              {
+              AverageRowMeasures->push_back(0);
+              CountVector.push_back(0);
+              }
+
+              while (Qry.previous())
+              {
+                  for (int i=0;i<INIFile->GetParam("Main/NumberOfPairs");i++)
+                        {
+                        if (Qry.value(2+i).toReal()!=0)
+                            {
+                            AverageRowMeasures->data()[i]=AverageRowMeasures->data()[i]+Qry.value(2+i).toReal()/1000;
+                            CountVector.data()[i]++;
+                            }
+                        }
+              }
+          } else qDebug() << "SELECT SQL Query is _NOT_ OK ";
+
+          for (int i=0;i<INIFile->GetParam("Main/NumberOfPairs");i++)
+                {
+                if (CountVector.data()[i]!=0)
+                    {
+                    AverageRowMeasures->data()[i]=AverageRowMeasures->data()[i]/CountVector.data()[i];
+                    } else { AverageRowMeasures->data()[i]=0; }
+                }
           //qDebug() << sQuery;
           db.close();
           delete(INIFile);

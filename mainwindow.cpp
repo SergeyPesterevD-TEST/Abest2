@@ -18,7 +18,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     MainCounter=0;
 
-    lamp(-1);
+    lamp(-1,false);
     ui->StopBut->setHidden(true);
     ui->CancelFilterBut->setHidden(true);
     ui->FilterFlag->setHidden(true);
@@ -34,14 +34,14 @@ MainWindow::MainWindow(QWidget *parent)
     //
 
     ui->SensorValues->setColumnCount(7);
-    ui->SensorValues->setRowCount(4);
+    ui->SensorValues->setRowCount(5);
     ui->SensorValues->setShowGrid(true);
     ui->SensorValues->hideColumn(0);
     ui->SensorValues->hideRow(0);
     ui->SensorValues->hideRow(1);
     ui->SensorValues->hideRow(2);
     for (int i=0;i<7;i++) ui->SensorValues->setColumnWidth(i,INIFile.GetParam("Interface/ColumnWidth"));
-    for (int i=0;i<4;i++) ui->SensorValues->setRowHeight(i,INIFile.GetParam("Interface/RowHeight"));
+    for (int i=0;i<5;i++) ui->SensorValues->setRowHeight(i,INIFile.GetParam("Interface/RowHeight"));
 
     timer2 = new QTimer;
     connect(timer2, SIGNAL(timeout()), this, SLOT(slotTimerAlarm2()));
@@ -68,18 +68,22 @@ QColor MainWindow::GetColorForChannel(int i)
 
 void MainWindow::makePlot()
 {
-    for (int i=0;i<6;i++)
-    {
-    ui->customPlot->addGraph();
     QPen Pen;
 
+    // creating Plots and set Pen type
+    for (int i=0;i<6;i++)
+    {
     Pen.setColor(GetColorForChannel(i));
     Pen.setWidth(3);
-
-
+    ui->customPlot->addGraph();
     ui->customPlot->graph(i)->setPen(Pen);
     }
 
+    Pen.setColor(GetColorForChannel(3));
+    ui->customPlotSpeed->addGraph();
+    ui->customPlotSpeed->graph(0)->setPen(Pen);
+
+    // setting Axis
     QString PlotScale="";
     switch (INIFile.GetParam("Plot/Scale"))
     {
@@ -97,6 +101,7 @@ void MainWindow::makePlot()
         break;
     }
     ui->customPlot->yAxis->setLabel("Толщина, "+PlotScale);
+    ui->customPlotSpeed->yAxis->setLabel("Скорость, м/мин");
 
     PlotScale="";
     switch (INIFile.GetParam("Plot/ScaleLength"))
@@ -111,12 +116,15 @@ void MainWindow::makePlot()
         PlotScale="км";
         break;
     }
-    if (INIFile.GetParam("Plot/Time")==1)
-    {
-     ui->customPlot->xAxis->setLabel("Время");
-    } else {    ui->customPlot->xAxis->setLabel("Длина, "+PlotScale);  }
+
+    //ui->customPlot->xAxis->setLabel("Время");
+    //ui->customPlotSpeed->xAxis->setLabel("Время");
+
     ui->customPlot->yAxis->setRange(INIFile.GetParam("Plot/Ymin")/10, INIFile.GetParam("Plot/Ymax")/10);
+    ui->customPlotSpeed->yAxis->setRange(INIFile.GetParam("Plot/SYmin")/10, INIFile.GetParam("Plot/SYmax")/10);
+
     ui->customPlot->replot();
+    ui->customPlotSpeed->replot();
 }
 
 void MainWindow::on_pushButtonStart_clicked()
@@ -134,7 +142,7 @@ void MainWindow::on_pushButtonStart_clicked()
     timer3->start(INIFile.GetParam("Main/TimerUpdate"));
 
     beep=TRUE;
-    lamp(0);
+    lamp(0, false);
 //    ui->customPlot->graph(0)->data()->clear();
 //    ui->customPlot->replot();
 
@@ -155,16 +163,23 @@ void MainWindow::on_pushButtonStart_clicked()
 void MainWindow::RepaintRiftek(QVector<SqlModule::Top100> *Top100Measures)
 {
     SqlModule::Top100 OneMeasure;
-    int ChannelToShow;
+    float MaxSpeed, MinSpeed;
+    MinSpeed=100000;
+    MaxSpeed=-100000;
 
+    // cleaning
     for (int i=0;i<6;i++)
     {
     ui->customPlot->graph(i)->data()->clear();
     }
+    ui->customPlotSpeed->graph(0)->data()->clear();
 
+    // setting XAxis in time
     QSharedPointer<QCPAxisTickerDateTime> timeTicker(new QCPAxisTickerDateTime);
     timeTicker->setDateTimeFormat("hh:mm");
+
     ui->customPlot->xAxis->setTicker(timeTicker);
+    ui->customPlotSpeed->xAxis->setTicker(timeTicker);
 
     qint64 tBegin,tEnd;
     for (int i=0;i<Top100Measures->count();i++)
@@ -187,10 +202,20 @@ void MainWindow::RepaintRiftek(QVector<SqlModule::Top100> *Top100Measures)
         ui->customPlot->graph(i)->addData(OneMeasure.cdatetime.toSecsSinceEpoch(),(double)OneMeasure.data.data()[i]/1000);
         }
     }
+    ui->customPlotSpeed->graph(0)->addData(OneMeasure.cdatetime.toSecsSinceEpoch(),(double)OneMeasure.SPEED);
+
+    if (OneMeasure.SPEED>MaxSpeed) MaxSpeed=OneMeasure.SPEED;
+    if (OneMeasure.SPEED<MinSpeed && OneMeasure.SPEED>0) MinSpeed=OneMeasure.SPEED;
+
     }
     ui->customPlot->xAxis->setRange(tBegin, tEnd);
+    ui->customPlotSpeed->xAxis->setRange(tBegin, tEnd);
+
+    ui->customPlotSpeed->yAxis->setRange(INIFile.GetParam("Plot/SYmin")/10, INIFile.GetParam("Plot/SYmax")/10);
+
     ui->customPlot->yAxis->setRange((double)INIFile.GetParam("Plot/Ymin")/10, (double)INIFile.GetParam("Plot/Ymax")/10);
     ui->customPlot->replot();
+    ui->customPlotSpeed->replot();
 }
 
 void MainWindow::UpdateRiftek()  // one measure
@@ -226,7 +251,7 @@ void MainWindow::UpdateRF(QVector<int> OutputMeasures)
 void MainWindow::on_StopBut_clicked()
 {
     beep=FALSE;
-    lamp(-1);
+    lamp(-1, true);
     timer->stop();
     timer3->stop();
     //если поток
@@ -348,7 +373,7 @@ void MainWindow::slotTimerAlarm()   // основной поток по рабо
                     LSPEED=LL2/
                         (LIRTIME.toSecsSinceEpoch()-lastLIRTIME.toSecsSinceEpoch());
                     //qDebug() << "S " << LSPEED;
-                    ui->SPEEDedit->setText(QString::number(LSPEED/1000,'f', 2));
+                    ui->SPEEDedit->setText(QString::number(60*LSPEED/1000,'f', 2));
                     }
                 }
                 }
@@ -361,7 +386,7 @@ void MainWindow::slotTimerAlarm()   // основной поток по рабо
        // ~refresh LIR
     qDebug() << "SQL insert";
     SQLConnection->SqlPutMeasure2("rulon4",&CurrentData, LL/1000, LSPEED/1000);
-
+    lamp(lastLAMP, true);
     MainCounter=0;
     }
 }
@@ -370,8 +395,14 @@ void MainWindow::slotTimerAlarm3()  // прорисовка графика ме�
 {
 
     SQLConnection->SqlGetLast(0, INIFile.GetParam("Plot/Xhours"), &Top100Measures); // get last points
+    SQLConnection->SqlGetAverageRow(INIFile.GetParam("Main/AverageRow"), &AverageRowMeasures); // get last points
     if (INIFile.GetParam("FilterSQL/Enabled")==0)
     {
+        for (int i=0;i<6;i++)
+        {
+        ui->SensorValues->setItem(4, 6-i, new QTableWidgetItem(QString::number(AverageRowMeasures.data()[i],'f',INIFile.GetParam("Main/Digits"))));
+        ui->SensorValues->item(4,6-i)->setBackground(GetColorForChannel(i));
+        }
     RepaintRiftek(&Top100Measures);
     }
 }
@@ -469,7 +500,7 @@ for (int i=0;i<INIFile.GetParam("Main/NumberOfPairs");i++)
         ui->SensorValues->item(3,6-i)->setBackground(GetColorForChannel(i));
     }    
    }
-if (flag) {        lamp(2);} else {        lamp(0);}
+if (flag) {        lamp(2, false);} else {        lamp(0, false);}
 }
 
 
@@ -493,7 +524,7 @@ for (int i=0;i<INIFile.GetParam("Main/NumberOfPairs");i++)
         ui->SensorValues->item(3,6-i)->setBackground(GetColorForChannel(i));
     }
    }
-if (flag) {        lamp(2);} else {        lamp(0);}
+if (flag) {        lamp(2, false);} else {        lamp(0, false);}
 }
 
 
@@ -559,11 +590,11 @@ void MainWindow::GetLIR(unsigned long *LIR, QDateTime *LIRTIME)
         qDebug() << *LIRTIME;*/
 }
 
-void MainWindow::lamp(int i)
+void MainWindow::lamp(int i, bool force)
 {
 QStringList ql;
 
-if (lastLAMP==i) {return; } // if the state is changed
+if (lastLAMP==i && force==FALSE) {return; } // if the state is changed
 lastLAMP=i;
 
 if (ui->AlarmBox->isChecked())
