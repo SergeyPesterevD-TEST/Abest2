@@ -56,7 +56,7 @@ private slots:
     void FilterRiftek(QVector<SqlModule::Top100> *Top100Measures, QVector<int> *CurrentData);
     void FilterRiftek2(QVector<SqlModule::Top100> *Top100Measures);
 
-    void GetLIR(unsigned long *LIR, QDateTime *LIRTIME);
+    void GetLIR(unsigned long long *LIR, QDateTime *LIRTIME);
 
     void RefillTableRiftek2(QVector<int> *CurrentData, QVector<int> *Measures);
     void RefillTableRiftek(QVector<SqlModule::Top100> *Top100Measures, QVector<int> *Measures);
@@ -108,8 +108,8 @@ private:
     //
     SqlModule *SQLConnection;
     //
-    unsigned long lastLIR;
-    unsigned long zeroLIR;
+    unsigned long long lastLIR;
+    unsigned long long zeroLIR;
     int lastLAMP;
     QDateTime lastLIRTIME;
     //

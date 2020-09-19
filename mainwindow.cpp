@@ -343,7 +343,7 @@ void MainWindow::slotTimerAlarm()   // основной поток по рабо
     if (MainCounter>30)
     {
         // refresh LIR
-        unsigned long LIR;
+        unsigned long long LIR;
         QDateTime LIRTIME;
         float LL,LL2;
         float LSPEED;
@@ -379,8 +379,8 @@ void MainWindow::slotTimerAlarm()   // основной поток по рабо
                 }
             lastLIR=LIR;
             lastLIRTIME=LIRTIME;
-            //qDebug() << "lastLIR " << lastLIR;
-            //qDebug() << "lastLIRTIME " << lastLIRTIME;
+  //          qDebug() << "lastLIR " << lastLIR;
+  //          qDebug() << "lastLIRTIME " << lastLIRTIME;
             } else { qDebug() << "LIR failed"; }
        }
        // ~refresh LIR
@@ -571,7 +571,7 @@ void MainWindow::on_ch5_stateChanged(int arg1)
     this->on_ch0_stateChanged(arg1);
 }
 
-void MainWindow::GetLIR(unsigned long *LIR, QDateTime *LIRTIME)
+void MainWindow::GetLIR(unsigned long long *LIR, QDateTime *LIRTIME)
 {
         QProcess process;
         QString LIRResponse;
@@ -584,10 +584,10 @@ void MainWindow::GetLIR(unsigned long *LIR, QDateTime *LIRTIME)
         LIRResponse=process.readAllStandardOutput();
         LIRResponse.chop(2);
         LIRResponse.remove(0,1);
-        *LIR = LIRResponse.toULong();
-/*        qDebug() << LIRResponse;
+        *LIR = LIRResponse.toULongLong();
+        qDebug() << LIRResponse;
         qDebug() << *LIR;
-        qDebug() << *LIRTIME;*/
+        qDebug() << *LIRTIME;
 }
 
 void MainWindow::lamp(int i, bool force)
@@ -612,7 +612,7 @@ QProcess::startDetached("C:\\THICKNESS\\Installer\\lirQT.exe",ql);
 
 void MainWindow::on_pushButton_clicked()   //reset lir
 {
-    unsigned long LIR;
+    unsigned long long LIR;
     QDateTime LIRTIME;
 
     GetLIR(&LIR, &LIRTIME);
