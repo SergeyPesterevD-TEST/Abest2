@@ -144,7 +144,7 @@ int SqlModule::SqlPutMeasure2(QString rulon, QVector<int> *CurrentData,
     {
           QString sQuery;
           sQuery = "INSERT INTO ["+dbName+"].[dbo].[Measures]";
-          sQuery = sQuery + " ([rulon],[cdatetime],[c1],[c2],[c3],[c4],[c5],[c6],[LIR],[SPEED])";
+          sQuery = sQuery + " ([rulon],[cdatetime],[c1],[c2],[c3],[c4],[c5],[LIR],[SPEED])";
           sQuery = sQuery + " VALUES (";
           sQuery = sQuery + "'"+rulon+"',";
           QDateTime CurrentDateTime=QDateTime::currentDateTime();
@@ -162,6 +162,7 @@ int SqlModule::SqlPutMeasure2(QString rulon, QVector<int> *CurrentData,
           sQuery = sQuery + ");";
 
           delete(INIFile);
+          qDebug() << sQuery;
           QSqlQuery Qry;
           //if (ThickValue>0)
             {

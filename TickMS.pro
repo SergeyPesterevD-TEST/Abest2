@@ -1,4 +1,4 @@
-QT      += core gui
+QT      += serialbus core gui
 QT      += sql
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport
@@ -7,6 +7,7 @@ CONFIG += c++11
 
 #LIBS += "rfdevice_mingwd.dll"
 #LIBS += "ulp_lib.dll"
+#LIBS += "owen_io.dll"
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -21,17 +22,20 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 
 SOURCES += \
+    ModBusMaster.cpp \
     RF603.cpp \
     SQLmodule.cpp \
     inisettings.cpp \
     main.cpp \
     mainwindow.cpp \
+    newrulondialog.cpp \
     qcustomplot.cpp \
     rfthread.cpp \
     sqlfilter.cpp \
     tsetupform.cpp
 
 HEADERS += \
+    ModBusMaster.h \
     RF603.h \
     RFheaders/RF060Device.h \
     RFheaders/RF085Device.h \
@@ -96,6 +100,8 @@ HEADERS += \
     inc/ulp_tools.h \
     inisettings.h \
     mainwindow.h \
+    newrulondialog.h \
+    owen/owen_io.h \
     qcustomplot.h \
     rfthread.h \
     sqlfilter.h \
@@ -103,6 +109,7 @@ HEADERS += \
 
 FORMS += \
     mainwindow.ui \
+    newrulondialog.ui \
     sqlfilter.ui \
     tsetupform.ui
 
@@ -114,19 +121,23 @@ qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/LIRlib/release/ -lulp_lib
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/LIRlib/debug/ -lulp_lib
-else:unix: LIBS += -L$$PWD/LIRlib/ -lulp_lib
+# OWEN
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/owen/ -lowen_io
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/owen/ -lowen_io
+else:unix: LIBS += -L$$PWD/owen/ -lowen_io
 
-INCLUDEPATH += $$PWD/LIRlib/Debug
-DEPENDPATH += $$PWD/LIRlib/Debug
+INCLUDEPATH += $$PWD/owen
+DEPENDPATH += $$PWD/owen
+# !OWEN
 
+# RIFTEK
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/RFlib/ -lrfdevice_mingw
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/RFlib/ -lrfdevice_mingwd
 else:unix: LIBS += -L$$PWD/RFlib/ -lrfdevice_mingw
 
 INCLUDEPATH += $$PWD/RFlib
 DEPENDPATH += $$PWD/RFlib
+# !RIFTEK
 
 DISTFILES += \
     algorithms/.gitignore \

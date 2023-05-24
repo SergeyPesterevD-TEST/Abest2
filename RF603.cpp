@@ -15,14 +15,12 @@ RF603::RF603()
 
 bool RF603::RF603_CheckSensors(IniSettings *INIFile, QVector<int> *Measures)
 {
-///qDebug() << "Checking sensors";
-
 RFDevice::Initialize();
 RFDevice::RF603Device *dev = new RFDevice::RF603Device();
 RFDevice::RFCOMHELLOANSWER hello;
 BOOL bConn = FALSE;
 
-//qDebug() << "Opening " << INIFile->GetParamStr("Main/ComPortNumber") << INIFile->GetParamStr("Main/SensorSpeed") << "...";
+//qDebug() << "SENSORS Opening " << INIFile->GetParamStr("Main/ComPortNumber") << INIFile->GetParamStr("Main/SensorSpeed") << "...";
 
 QByteArray temp_data;
 QString temp_str;
@@ -40,31 +38,33 @@ if (INIFile->GetParamStr("Main/SensorSpeed")=="115200") {bConn = dev->OpenPort(s
 
 if (!bConn)
     {
-        qDebug() << "Failed\n";
+        //qDebug() << "SENSORS Failed\n";
         CheckResult=FALSE;
     }
     else
     {
     Measures->clear();
     dev->LockResult(0);
-        for (int i=1; i<=INIFile->GetParam("Main/NumberOfSensors"); i++)
+    Measures->push_back(0);
+        for (int i=1; i<=INIFile->GetParam("Main/NumberOfSensors")+1; i++)
             {
-            //qDebug() << "Check " << i;
+            //qDebug() << "SENSORS Check " << i;
             dev->BindNetworkAddress(i);
-            /*qDebug() << "HelloCmd()";
-            if (!dev->HelloCmd())
+            //qDebug() << "SENSORS HelloCmd()";
+            /*if (!dev->HelloCmd())
                 {
-                qDebug() << "Failed\n";
+                qDebug() << "SENSORS Failed\n";
                 CheckResult=FALSE;
                 }
             else*/
                 {
-    //          qDebug() << "Detected\n";
+              //qDebug() << "SENSORS Detected\n";
 
                 USHORT x;
                 dev->GetSingleMeasure(&x);
+                //qDebug() << "SENSORS Measure " << i << " = " << x;
                 x=1000*x*10/0x4000;
-    //            qDebug() << "Measure " << i << " = " << x;
+                //qDebug() << "SENSORS Measure " << i << " = " << x;
                 Measures->push_back(x);
                 }
        }

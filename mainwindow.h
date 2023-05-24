@@ -14,6 +14,10 @@
 #include "ui_mainwindow.h"
 #include "sqlfilter.h"
 #include "algorithms/filters.h"
+#include "ModBusMaster.h"
+#include <QMap>
+#include <cmath>
+#include "owen/owen_io.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -91,7 +95,7 @@ private slots:
 
     QColor GetColorForChannel(int i);
 
-    void lamp(int i, bool force);
+    void lamp(int i, bool beep);
 
     void on_pushButton_clicked();
 
@@ -100,11 +104,17 @@ private:
     QThread RFThreadThread;
     RFThread RFMeasures;
     //
+
+    QVector<int> SensorTable;
     QVector<ToFilter> Filter;
     ToFilter FilterOne;
     int FilterCount;
     int MainCounter;
     BOOL beep;
+    int lampstatus;
+    //
+    ModBusMaster *Temps;
+    ModBusMaster *LightPost;
     //
     SqlModule *SQLConnection;
     //
