@@ -232,3 +232,127 @@ if (db.open())
 
 }
 
+
+int SqlModule::SqlGetTypes(QVector <CartonTypes> &TypesList)
+{
+IniSettings *INIFile =new IniSettings;
+QString ServerName=INIFile->GetParamStr("SQL/ServerName");
+QString dbName=INIFile->GetParamStr("SQL/DBName");
+QSqlDatabase db = QSqlDatabase::addDatabase("QODBC");
+db.setConnectOptions();
+QString dsn=INIFile->GetParamStr("SQL/DSN").arg(ServerName).arg(dbName);
+db.setDatabaseName(dsn);
+if (db.open())
+{
+      QString sQuery;
+      sQuery = "SELECT * FROM Products ORDER BY productName";
+      QSqlQuery Qry;
+      TypesList.clear();
+
+      if (Qry.exec(sQuery))
+      {
+          while (Qry.next())
+          {
+          CartonTypes OneRecord;
+          OneRecord.key=Qry.value("ProductKey").toInt();
+          OneRecord.name=Qry.value("ProductName").toString();
+          OneRecord.target=Qry.value("NominalThickness").toInt();
+          OneRecord.max=Qry.value("ToleranceUp").toInt();
+          OneRecord.min=Qry.value("ToleranceDown").toInt();
+          OneRecord.offset=Qry.value("Offset").toInt();
+          TypesList.push_back(OneRecord);
+          }
+      } else qDebug() << "SELECT SQL Query is _NOT_ OK ";
+      db.close();
+      delete(INIFile);
+} else
+{
+      delete(INIFile);
+      qDebug() << "ERROR: " << db.lastError().text();
+}
+}
+
+
+// SqlGetUsers(UsersList);
+int SqlModule::SqlGetUsers(QVector <UsersTypes> &UsersList)
+{
+IniSettings *INIFile =new IniSettings;
+QString ServerName=INIFile->GetParamStr("SQL/ServerName");
+QString dbName=INIFile->GetParamStr("SQL/DBName");
+QSqlDatabase db = QSqlDatabase::addDatabase("QODBC");
+db.setConnectOptions();
+QString dsn=INIFile->GetParamStr("SQL/DSN").arg(ServerName).arg(dbName);
+db.setDatabaseName(dsn);
+if (db.open())
+{
+      QString sQuery;
+      sQuery = "SELECT * FROM Users WHERE isactive=1 ORDER BY username";
+      QSqlQuery Qry;
+      UsersList.clear();
+
+      if (Qry.exec(sQuery))
+      {
+          while (Qry.next())
+          {
+          UsersTypes OneRecord;
+          OneRecord.key=Qry.value("namekey").toInt();
+          OneRecord.username=Qry.value("username").toString();
+          OneRecord.password=Qry.value("password").toInt();
+          OneRecord.shiftnumber=Qry.value("shiftnumber").toInt();
+          OneRecord.isadmin=Qry.value("isadmin").toInt();
+          OneRecord.fingerprint=Qry.value("fingerprint").toInt();
+          UsersList.push_back(OneRecord);
+          }
+      } else qDebug() << "SELECT SQL Query is _NOT_ OK ";
+      db.close();
+      delete(INIFile);
+} else
+{
+      delete(INIFile);
+      qDebug() << "ERROR: " << db.lastError().text();
+}
+}
+
+// SqlAddNewRulon
+int SqlModule::SqlAddNewRulon(CurrentRulon &rulon)
+{
+IniSettings *INIFile =new IniSettings;
+QString ServerName=INIFile->GetParamStr("SQL/ServerName");
+QString dbName=INIFile->GetParamStr("SQL/DBName");
+QSqlDatabase db = QSqlDatabase::addDatabase("QODBC");
+db.setConnectOptions();
+QString dsn=INIFile->GetParamStr("SQL/DSN").arg(ServerName).arg(dbName);
+db.setDatabaseName(dsn);
+int result=-1;
+
+if (db.open())
+{
+      //insert
+      QString sQuery;
+      sQuery = "set dateformat ymd \n INSERT INTO Rulons ([currentdate],[username],[rulonnumber],[product],[max],[min],[nominal])";
+      sQuery +=" VALUES ('"+rulon.currentdate+"','"+rulon.username+"','"+rulon.rulonnumber;
+      sQuery +=" ','"+rulon.rulontype+"',"+QString::number(rulon.max*1000)+","+QString::number(rulon.min*1000)+","+QString::number(rulon.nominal*1000)+")";
+      qDebug() << "complicated INSERT" << sQuery;
+
+      QSqlQuery Qry;
+      Qry.exec(sQuery);
+
+      //get id
+      sQuery = "SELECT * FROM Rulons order by rulonkey desc";
+      if (Qry.exec(sQuery))
+      {
+          if (Qry.next())
+          {
+          result=Qry.value("rulonkey").toInt();
+          }
+      } else qDebug() << "SELECT SQL Query is _NOT_ OK ";
+      db.close();
+      delete(INIFile);
+} else
+{
+      delete(INIFile);
+      qDebug() << "ERROR: " << db.lastError().text();
+}
+return result;
+}
+

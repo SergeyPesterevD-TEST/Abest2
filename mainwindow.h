@@ -18,6 +18,7 @@
 #include <QMap>
 #include <cmath>
 #include "owen/owen_io.h"
+#include "newrulondialog.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -129,6 +130,7 @@ private:
     //
     TSetupForm *SetupForm;
     SQLFilter *FilterForm;
+    NewRulonDialog *NewRulonForm;
     Ui::MainWindow *ui;
     RF603 RFSensors;
     int DataCount;

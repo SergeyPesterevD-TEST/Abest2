@@ -9,7 +9,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     SetupForm = new TSetupForm;
     FilterForm = new SQLFilter;
-
+    NewRulonForm = new NewRulonDialog;
 
     // MODBUS
     Temps = new ModBusMaster(this);
@@ -147,6 +147,10 @@ void MainWindow::makePlot()
 
 void MainWindow::on_pushButtonStart_clicked()
 {
+    NewRulonForm->RulonId=-1;
+    NewRulonForm->showMaximized();
+    NewRulonForm->updateAll();
+
     SqlModule *SQLConnection=new SqlModule;
 
     ui->pushButtonStart->setHidden(true);
