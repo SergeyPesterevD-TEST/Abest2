@@ -49,8 +49,9 @@ public:
     int SqlConnect();
     int SqlGetLast(int GetCount, int GetHours, QVector<Top100> *Top100Measures);
     int SqlGetAverageRow(int Minutes,  QVector<float> *AverageRowMeasures);
+    int SqlGetRulon(int RulonId, QVector<Top100> *Top100Measures);
     int SqlPutMeasure(QString rulon, QVector<int> *Measures);
-    int SqlPutMeasure2(QString rulon, QVector<int> *CurrentData, float LIR, float SPEED);
+    int SqlPutMeasure2(int rulon, QVector<int> *CurrentData, float LIR, float SPEED);
 
     // 2023
     int SqlGetTypes(QVector <CartonTypes> &TypesList);

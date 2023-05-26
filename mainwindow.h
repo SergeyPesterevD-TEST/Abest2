@@ -45,6 +45,8 @@ public:
     QVector<SqlModule::Top100> LastMeasures;
     QVector<SqlModule::Top100> FilterMeasures;
 
+    float LL; // lenght global
+
 public slots:
     void UpdateRF(QVector<int> OutputMeasures);
 
@@ -60,8 +62,6 @@ private slots:
 
     void FilterRiftek(QVector<SqlModule::Top100> *Top100Measures, QVector<int> *CurrentData);
     void FilterRiftek2(QVector<SqlModule::Top100> *Top100Measures);
-
-    void GetLIR(unsigned long long *LIR, QDateTime *LIRTIME);
 
     void RefillTableRiftek2(QVector<int> *CurrentData, QVector<int> *Measures);
     void RefillTableRiftek(QVector<SqlModule::Top100> *Top100Measures, QVector<int> *Measures);

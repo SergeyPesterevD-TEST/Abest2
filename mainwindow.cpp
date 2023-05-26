@@ -18,11 +18,6 @@ MainWindow::MainWindow(QWidget *parent)
     LightPost->ConnectModbus(INIFile.GetParamStr("Modbus/LightPost/host"));
     //
 
-    if (INIFile.GetParam("debug")==0)
-    {
-     ui->GetLirBtn->setHidden(true);
-    }
-
     MainCounter=0;
 
     beep=false;
@@ -276,6 +271,7 @@ void MainWindow::on_StopBut_clicked()
     timer3->stop();
     //если поток
     //RFMeasures.setRunning(false);
+    NewRulonForm->RulonId=-1;
     ui->pushButtonStart->setHidden(false);
     ui->StopBut->setHidden(true);
 }
@@ -290,17 +286,11 @@ void MainWindow::slotTimerAlarm2()    // забираем из базы боль
 
     ReadSI8BCD(address, ADRTYPE_8BIT, "DCNT", DCNT);
     qDebug() << "OWEN DCNT Get" << DCNT;
-    QThread::msleep(500);
-    ReadSI8BCD(address, ADRTYPE_8BIT, "DSPD", DSPD);
-    qDebug() << "OWEN DSPD Get" << DSPD;
-    int hrs=0;
-    int mins=0;
-    int sec=0;
-    int msec=0;
-    QThread::msleep(500);
-    ReadDTMR(address, ADRTYPE_8BIT, hrs,mins,sec,msec);
-    qDebug() << "OWEN DTMR Get" << hrs << mins << sec << msec;
-
+    if (DCNT>0)
+    {
+    LL=(float)(DCNT-30000000)/1000;
+    ui->LIRedit->setText(QString::number((float)(DCNT-30000000)/1000,'f',1));
+    }
     // !OWEN
 
     Temps->ModbusReadInputRegisters(1);
@@ -331,6 +321,10 @@ void MainWindow::slotTimerAlarm()   // основной поток по рабо
 {
     float ThickValue;
     QVector<int> CurrentData;
+
+    ui->lineProductType->setText(NewRulonForm->Rulon.rulontype);
+    ui->lineRulonNumber->setText(NewRulonForm->Rulon.rulonnumber);
+    ui->lineThickness->setText(QString::number(NewRulonForm->Rulon.nominal,'f',2));
 
     //lamp(1,false);
 
@@ -384,57 +378,10 @@ void MainWindow::slotTimerAlarm()   // основной поток по рабо
 
     MainCounter++;
 
-    if (MainCounter>30)
-    {
-        // refresh LIR
-        unsigned long long LIR;
-        QDateTime LIRTIME;
-        float LL,LL2;
-        float LSPEED;
-        LL=0;
-        LL2=0;
-        LSPEED=0;
-
-
-        /*//if (zeroLIR!=0) // if ZERO is not set jump over
-        {
-
-> 23 47 49 48 47 53 48 4E 4A 55  <
-23 47 49 48 47 53 48 4E 4A 55
-> 23 47 49 48 47 53 48 4E 4A 55 4E 48 51 0D  < 23 47 49 48 47 53 48 4E 4A 55 4E 48 51 0D 23 47 49 47 4B 53 48 4E 4A 52 47 47 47 47 47 47 47 4A 56 4C 49 0D
-
-            int i=0;
-            do {  i++;  GetLIR(&LIR, &LIRTIME);  } while (LIR==0 && i<5);
-
-            if (LIR!=0)  // if success
-            { //qDebug() << "LIR success " << i;
-            if (lastLIR!=0)  // if it is not the first data
-                {
-                if (INIFile.GetParam("Lir/IPR")!=0)
-                {
-                if (zeroLIR!=0) {LL=M_PI*INIFile.GetParam("Lir/D")*(LIR-zeroLIR)/INIFile.GetParam("Lir/IPR");}
-                LL2=M_PI*INIFile.GetParam("Lir/D")*(LIR-lastLIR)/INIFile.GetParam("Lir/IPR");
-                ui->LIRedit->setText(QString::number(LL/1000,'f', 2));
-                //qDebug() << "L " << LL;
-
-                if (LIRTIME.toSecsSinceEpoch()-lastLIRTIME.toSecsSinceEpoch()!=0)
-                    {
-                    LSPEED=LL2/
-                        (LIRTIME.toSecsSinceEpoch()-lastLIRTIME.toSecsSinceEpoch());
-                    //qDebug() << "S " << LSPEED;
-                    ui->SPEEDedit->setText(QString::number(60*LSPEED/1000,'f', 2));
-                    }
-                }
-                }
-            lastLIR=LIR;
-            lastLIRTIME=LIRTIME;
-  //          qDebug() << "lastLIR " << lastLIR;
-  //          qDebug() << "lastLIRTIME " << lastLIRTIME;
-            } else { qDebug() << "LIR failed"; }
-       }*/
-       // ~refresh LIR
+    if (MainCounter>1)
+    {    
     qDebug() << "SQL insert";
-    SQLConnection->SqlPutMeasure2("rulon4",&CurrentData, LL/1000, LSPEED/1000);
+        SQLConnection->SqlPutMeasure2(NewRulonForm->RulonId,&CurrentData, LL, 0);
     lampstatus=lastLAMP;
     MainCounter=0;
     }
@@ -442,18 +389,14 @@ void MainWindow::slotTimerAlarm()   // основной поток по рабо
 
 void MainWindow::slotTimerAlarm3()  // прорисовка графика медленная
 {
+// to add get all the rulon
+    //SQLConnection->SqlGetLast(0, INIFile.GetParam("Plot/Xhours"), &Top100Measures); // get last points
+    //SQLConnection->SqlGetRulon(NewRulonForm->RulonId, &Top100Measures); // get last points
+    SQLConnection->SqlGetRulon(17, &Top100Measures); // get last points
+    qDebug() << "TESTGRAPH";
+//    SQLConnection->SqlGetAverageRow(INIFile.GetParam("Main/AverageRow"), &AverageRowMeasures); // get last points
 
-    SQLConnection->SqlGetLast(0, INIFile.GetParam("Plot/Xhours"), &Top100Measures); // get last points
-    SQLConnection->SqlGetAverageRow(INIFile.GetParam("Main/AverageRow"), &AverageRowMeasures); // get last points
-    if (INIFile.GetParam("FilterSQL/Enabled")==0)
-    {
-        for (int i=0;i<INIFile.GetParam("Main/NumberOfPairs");i++)
-        {
-        ui->SensorValues->setItem(4, INIFile.GetParam("Main/NumberOfPairs")-i, new QTableWidgetItem(QString::number(AverageRowMeasures.data()[i],'f',INIFile.GetParam("Main/Digits"))));
-        ui->SensorValues->item(4,INIFile.GetParam("Main/NumberOfPairs")-i)->setBackground(GetColorForChannel(i));
-        }
     RepaintRiftek(&Top100Measures);
-    }
 }
 
 void MainWindow::FilterRiftek(QVector<SqlModule::Top100> *Top100Measures, QVector<int> *CurrentData)
@@ -625,25 +568,6 @@ void MainWindow::on_ch5_stateChanged(int arg1)
     this->on_ch0_stateChanged(arg1);
 }
 
-void MainWindow::GetLIR(unsigned long long *LIR, QDateTime *LIRTIME)
-{
-        QProcess process;
-        QString LIRResponse;
-        *LIRTIME = QDateTime::currentDateTime();
-
-        process.start( "C:\\THICKNESS\\Installer\\lirlen.exe"); //, QStringList() << "-t" );
-        if( !process.waitForStarted() || !process.waitForFinished() ) {
-            return;
-        }
-        LIRResponse=process.readAllStandardOutput();
-        LIRResponse.chop(2);
-        LIRResponse.remove(0,1);
-        *LIR = LIRResponse.toULongLong();
-        qDebug() << LIRResponse;
-        qDebug() << *LIR;
-        qDebug() << *LIRTIME;
-}
-
 void MainWindow::lamp(int i, bool beep)
 {
 /*
@@ -668,7 +592,7 @@ void MainWindow::on_pushButton_clicked()   //reset lir
     unsigned long long LIR;
     QDateTime LIRTIME;
 
-    GetLIR(&LIR, &LIRTIME);
+
 
     zeroLIR=LIR;
 }

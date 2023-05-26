@@ -20,7 +20,7 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>200</x>
+      <x>60</x>
       <y>85</y>
       <width>851</width>
       <height>111</height>
@@ -146,7 +146,7 @@
    <widget class="QPushButton" name="SettingsBut">
     <property name="geometry">
      <rect>
-      <x>1210</x>
+      <x>770</x>
       <y>10</y>
       <width>141</width>
       <height>71</height>
@@ -164,19 +164,6 @@
       <width>1341</width>
       <height>481</height>
      </rect>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="GetLirBtn">
-    <property name="geometry">
-     <rect>
-      <x>880</x>
-      <y>10</y>
-      <width>51</width>
-      <height>71</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Get LIR</string>
     </property>
    </widget>
    <widget class="QLabel" name="label">
@@ -205,8 +192,8 @@
    <widget class="QLabel" name="label_2">
     <property name="geometry">
      <rect>
-      <x>1280</x>
-      <y>195</y>
+      <x>900</x>
+      <y>200</y>
       <width>71</width>
       <height>21</height>
      </rect>
@@ -228,7 +215,7 @@
    <widget class="QPushButton" name="FilterButton">
     <property name="geometry">
      <rect>
-      <x>1074</x>
+      <x>634</x>
       <y>10</y>
       <width>131</width>
       <height>71</height>
@@ -241,8 +228,8 @@
    <widget class="QCheckBox" name="ch05">
     <property name="geometry">
      <rect>
-      <x>260</x>
-      <y>200</y>
+      <x>151</x>
+      <y>199</y>
       <width>72</width>
       <height>20</height>
      </rect>
@@ -257,8 +244,8 @@
    <widget class="QCheckBox" name="ch04">
     <property name="geometry">
      <rect>
-      <x>420</x>
-      <y>200</y>
+      <x>311</x>
+      <y>199</y>
       <width>72</width>
       <height>20</height>
      </rect>
@@ -273,8 +260,8 @@
    <widget class="QCheckBox" name="ch03">
     <property name="geometry">
      <rect>
-      <x>590</x>
-      <y>200</y>
+      <x>481</x>
+      <y>199</y>
       <width>72</width>
       <height>20</height>
      </rect>
@@ -289,8 +276,8 @@
    <widget class="QCheckBox" name="ch02">
     <property name="geometry">
      <rect>
-      <x>750</x>
-      <y>200</y>
+      <x>641</x>
+      <y>199</y>
       <width>72</width>
       <height>20</height>
      </rect>
@@ -305,8 +292,8 @@
    <widget class="QCheckBox" name="ch01">
     <property name="geometry">
      <rect>
-      <x>920</x>
-      <y>200</y>
+      <x>811</x>
+      <y>199</y>
       <width>72</width>
       <height>20</height>
      </rect>
@@ -321,10 +308,10 @@
    <widget class="QCheckBox" name="AlarmBox">
     <property name="geometry">
      <rect>
-      <x>660</x>
-      <y>30</y>
+      <x>1220</x>
+      <y>130</y>
       <width>101</width>
-      <height>31</height>
+      <height>41</height>
      </rect>
     </property>
     <property name="font">
@@ -348,9 +335,9 @@
     <property name="geometry">
      <rect>
       <x>400</x>
-      <y>20</y>
-      <width>111</width>
-      <height>31</height>
+      <y>10</y>
+      <width>201</width>
+      <height>61</height>
      </rect>
     </property>
     <property name="font">
@@ -368,60 +355,156 @@
    <widget class="QLabel" name="label_3">
     <property name="geometry">
      <rect>
-      <x>294</x>
+      <x>300</x>
       <y>30</y>
-      <width>61</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Длина, м</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="pushButton">
-    <property name="geometry">
-     <rect>
-      <x>520</x>
-      <y>10</y>
       <width>91</width>
-      <height>61</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>СБРОС ДЛИНЫ</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_5">
-    <property name="geometry">
-     <rect>
-      <x>770</x>
-      <y>30</y>
-      <width>111</width>
       <height>16</height>
      </rect>
     </property>
     <property name="font">
      <font>
-      <pointsize>10</pointsize>
-      <bold>true</bold>
-      <underline>true</underline>
+      <pointsize>14</pointsize>
      </font>
     </property>
     <property name="text">
-     <string>Температуры</string>
+     <string>Длина, м</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_5">
+    <property name="geometry">
+     <rect>
+      <x>940</x>
+      <y>135</y>
+      <width>181</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>11</pointsize>
+      <bold>true</bold>
+      <underline>false</underline>
+     </font>
+    </property>
+    <property name="text">
+     <string>Температура рамы</string>
     </property>
    </widget>
    <widget class="QLabel" name="Temperatures">
     <property name="geometry">
      <rect>
-      <x>770</x>
-      <y>50</y>
-      <width>111</width>
-      <height>16</height>
+      <x>940</x>
+      <y>156</y>
+      <width>141</width>
+      <height>20</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>11</pointsize>
+     </font>
     </property>
     <property name="text">
      <string>0 C, 0 C, 0 C</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_4">
+    <property name="geometry">
+     <rect>
+      <x>940</x>
+      <y>7</y>
+      <width>131</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>14</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Тип продукта</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_6">
+    <property name="geometry">
+     <rect>
+      <x>1130</x>
+      <y>7</y>
+      <width>141</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>14</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Номер рулона</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_7">
+    <property name="geometry">
+     <rect>
+      <x>940</x>
+      <y>63</y>
+      <width>181</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>14</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Толщина, mm</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineProductType">
+    <property name="geometry">
+     <rect>
+      <x>940</x>
+      <y>30</y>
+      <width>181</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>14</pointsize>
+     </font>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineRulonNumber">
+    <property name="geometry">
+     <rect>
+      <x>1130</x>
+      <y>30</y>
+      <width>171</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>14</pointsize>
+     </font>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineThickness">
+    <property name="geometry">
+     <rect>
+      <x>940</x>
+      <y>84</y>
+      <width>181</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>14</pointsize>
+     </font>
     </property>
    </widget>
   </widget>

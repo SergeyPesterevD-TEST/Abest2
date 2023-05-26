@@ -11,6 +11,53 @@ int SqlModule::SqlConnect()
 // to delete
 }
 
+//SQLConnection->SqlGetRulon(NewRulonForm->RulonId, &Top100Measures); // get last points
+int SqlModule::SqlGetRulon(int RulonId, QVector<Top100> *Top100Measures)
+{
+    IniSettings *INIFile =new IniSettings;
+    QString ServerName=INIFile->GetParamStr("SQL/ServerName");
+    QString dbName=INIFile->GetParamStr("SQL/DBName");
+    QSqlDatabase db = QSqlDatabase::addDatabase("QODBC");
+    db.setConnectOptions();
+    QString dsn=INIFile->GetParamStr("SQL/DSN").arg(ServerName).arg(dbName);
+    db.setDatabaseName(dsn);
+    if (db.open())
+    {
+        QString sQuery;
+        sQuery = "SELECT * FROM ["+dbName+"].[dbo].[Measures] WHERE rulonkey="+QString::number(RulonId)+" ORDER BY cdatetime DESC;";
+        QSqlQuery Qry;
+        if (Qry.exec(sQuery))
+        {
+            Qry.last();
+            Top100Measures->clear();
+            while (Qry.previous())
+            {
+                Top100 OneMeasure;
+                OneMeasure.rulon=Qry.value(0).toString();
+                OneMeasure.cdatetime=Qry.value(1).toDateTime();
+                OneMeasure.data.clear();
+                for (int i=0;i<INIFile->GetParam("Main/NumberOfPairs");i++)
+                {
+                    OneMeasure.data.push_back(Qry.value(2+i).toReal());
+                }
+                Top100Measures->push_back(OneMeasure);
+                //Top100Measures->push_front(OneMeasure);
+                OneMeasure.LIR=Qry.value(8).toReal();
+                OneMeasure.SPEED=60*Qry.value(9).toReal();
+            }
+        } else qDebug() << "SELECT SQL Query is _NOT_ OK ";
+        //qDebug() << sQuery;
+        db.close();
+        delete(INIFile);
+    } else
+    {
+        delete(INIFile);
+        qDebug() << "ERROR: " << db.lastError().text();
+    }
+
+}
+
+
 int SqlModule::SqlGetLast(int GetCount, int GetHours, QVector<Top100> *Top100Measures)
 {
     IniSettings *INIFile =new IniSettings;
@@ -129,9 +176,12 @@ int SqlModule::SqlGetAverageRow(int Minutes,  QVector<float> *AverageRowMeasures
 
 }
 
-int SqlModule::SqlPutMeasure2(QString rulon, QVector<int> *CurrentData,
+int SqlModule::SqlPutMeasure2(int rulon, QVector<int> *CurrentData,
                               float LIR, float SPEED)
 {
+    if (rulon==-1) return -1;
+    if (LIR==0) return 0;
+
     float ThickValue;
     IniSettings *INIFile =new IniSettings;
     QString ServerName=INIFile->GetParamStr("SQL/ServerName");
@@ -144,9 +194,9 @@ int SqlModule::SqlPutMeasure2(QString rulon, QVector<int> *CurrentData,
     {
           QString sQuery;
           sQuery = "INSERT INTO ["+dbName+"].[dbo].[Measures]";
-          sQuery = sQuery + " ([rulon],[cdatetime],[c1],[c2],[c3],[c4],[c5],[LIR],[SPEED])";
+          sQuery = sQuery + " ([RulonKey],[cdatetime],[c1],[c2],[c3],[c4],[c5],[LIR],[SPEED])";
           sQuery = sQuery + " VALUES (";
-          sQuery = sQuery + "'"+rulon+"',";
+          sQuery = sQuery + QString::number(rulon)+",";
           QDateTime CurrentDateTime=QDateTime::currentDateTime();
           sQuery = sQuery + "'"+CurrentDateTime.toString(Qt::ISODate)+"',";
 
