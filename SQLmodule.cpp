@@ -33,17 +33,17 @@ int SqlModule::SqlGetRulon(int RulonId, QVector<Top100> *Top100Measures)
             while (Qry.previous())
             {
                 Top100 OneMeasure;
-                OneMeasure.rulon=Qry.value(0).toString();
-                OneMeasure.cdatetime=Qry.value(1).toDateTime();
+                OneMeasure.rulon=Qry.value("RulonKey").toString();
+                OneMeasure.cdatetime=Qry.value("cdatetime").toDateTime();
                 OneMeasure.data.clear();
                 for (int i=0;i<INIFile->GetParam("Main/NumberOfPairs");i++)
                 {
-                    OneMeasure.data.push_back(Qry.value(2+i).toReal());
+                    OneMeasure.data.push_back(Qry.value("c"+QString::number(i)).toReal());
                 }
                 Top100Measures->push_back(OneMeasure);
                 //Top100Measures->push_front(OneMeasure);
-                OneMeasure.LIR=Qry.value(8).toReal();
-                OneMeasure.SPEED=60*Qry.value(9).toReal();
+                OneMeasure.LIR=Qry.value("LIR").toReal();
+                OneMeasure.SPEED=60*Qry.value("SPEED").toReal();
             }
         } else qDebug() << "SELECT SQL Query is _NOT_ OK ";
         //qDebug() << sQuery;
