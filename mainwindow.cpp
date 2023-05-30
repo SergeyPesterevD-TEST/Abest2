@@ -161,6 +161,8 @@ void MainWindow::on_pushButtonStart_clicked()
     beep=false;
     lampstatus=0;
 
+    delete(SQLConnection);
+
 //    ui->customPlot->graph(0)->data()->clear();
 //    ui->customPlot->replot();
 
@@ -269,6 +271,7 @@ void MainWindow::on_StopBut_clicked()
     lampstatus=-1;
     timer->stop();
     timer3->stop();
+    SQLConnection->SqlCalculateStatistics(NewRulonForm->RulonId);
     //если поток
     //RFMeasures.setRunning(false);
     NewRulonForm->RulonId=-1;
@@ -390,12 +393,9 @@ void MainWindow::slotTimerAlarm()   // основной поток по рабо
 void MainWindow::slotTimerAlarm3()  // прорисовка графика медленная
 {
 // to add get all the rulon
-    //SQLConnection->SqlGetLast(0, INIFile.GetParam("Plot/Xhours"), &Top100Measures); // get last points
-    //SQLConnection->SqlGetRulon(NewRulonForm->RulonId, &Top100Measures); // get last points
-    SQLConnection->SqlGetRulon(17, &Top100Measures); // get last points
+    SQLConnection->SqlGetRulon(NewRulonForm->RulonId, &Top100Measures); // get last points
+    //SQLConnection->SqlCalculateStatistics(17);
     qDebug() << "TESTGRAPH";
-//    SQLConnection->SqlGetAverageRow(INIFile.GetParam("Main/AverageRow"), &AverageRowMeasures); // get last points
-
     RepaintRiftek(&Top100Measures);
 }
 
@@ -527,7 +527,8 @@ if (flag) {        lampstatus=2;} else {        lampstatus=0;}
 
 void MainWindow::on_FilterButton_clicked()
 {
-    FilterForm->showMaximized();
+FilterForm->UpdateTable();
+FilterForm->showMaximized();
 }
 
 void MainWindow::on_CancelFilterBut_clicked()
@@ -589,10 +590,7 @@ LightPost->WriteMultipleCoils(0,status,4);
 
 void MainWindow::on_pushButton_clicked()   //reset lir
 {
-    unsigned long long LIR;
-    QDateTime LIRTIME;
-
-
-
-    zeroLIR=LIR;
+//
+//SQLConnection->FormXlsReport(17);
+SQLConnection->FormXlsSingleReport(17,200);
 }

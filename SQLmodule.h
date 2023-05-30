@@ -7,6 +7,8 @@
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include "SQLmodule.h"
+#include "statistics.h"
+#include "xlsxdocument.h"
 
 class SqlModule:public QObject
 {
@@ -57,6 +59,9 @@ public:
     int SqlGetTypes(QVector <CartonTypes> &TypesList);
     int SqlGetUsers(QVector <UsersTypes> &UsersList);
     int SqlAddNewRulon(CurrentRulon &rulon);
+    int SqlCalculateStatistics(int RulonId);
+    void FormXlsReport(int RulonId);
+    void FormXlsSingleReport(int RulonId, int delta);
 
 private slots:
 signals:

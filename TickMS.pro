@@ -1,5 +1,6 @@
 QT      += serialbus core gui
 QT      += sql
+#QT      += xlsx
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport
 
@@ -32,6 +33,7 @@ SOURCES += \
     qcustomplot.cpp \
     rfthread.cpp \
     sqlfilter.cpp \
+    statistics.cpp \
     tsetupform.cpp
 
 HEADERS += \
@@ -105,6 +107,7 @@ HEADERS += \
     qcustomplot.h \
     rfthread.h \
     sqlfilter.h \
+    statistics.h \
     tsetupform.h
 
 FORMS += \
@@ -142,3 +145,5 @@ DEPENDPATH += $$PWD/RFlib
 DISTFILES += \
     algorithms/.gitignore \
     algorithms/algorithms.pri
+
+include(C:\THICKNESS\TickMS\QtXlsxWriter\src\xlsx\qtxlsx.pri)
