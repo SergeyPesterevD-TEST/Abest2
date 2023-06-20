@@ -19,6 +19,7 @@ public:
 
     void UpdateTable();
     int RulonId;
+    int GlobalcurrentRow;
     QString FilterString;
 
 private slots:
@@ -33,6 +34,8 @@ private slots:
     void on_FilterButton_clicked();
 
     void on_FilterReset_clicked();
+
+    void on_pushButton_4_clicked();
 
 private:
     Ui::SQLFilter *ui;

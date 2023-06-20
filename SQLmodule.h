@@ -64,6 +64,10 @@ public:
     void FormXlsSingleReport(int RulonId, int delta);
     float CutFloat(float in);
 
+    int UpdateSQL(QString table, QString where, QStringList columns, QStringList values);
+    int InsertSQL(QString table, QStringList columns, QStringList values);
+    int DeleteSQL(QString table, QString where);
+
 private slots:
 signals:
 };

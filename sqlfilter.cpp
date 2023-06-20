@@ -6,6 +6,7 @@ SQLFilter::SQLFilter(QWidget *parent) :
     ui(new Ui::SQLFilter)
 {
     ui->setupUi(this);
+    FilterString="";
 
 }
 
@@ -79,7 +80,8 @@ void SQLFilter::UpdateTable()
     {
         sQuery += " WHERE "+filter;
     }
-    FilterString=" WHERE "+filter+" ORDER BY rulonkey DESC";
+    if (filter!="") { FilterString=" WHERE "+filter+" ORDER BY rulonkey DESC"; } else
+        { FilterString=""; }
     sQuery+=" ORDER BY rulonkey DESC";
 
     if (Qry.exec(sQuery))
@@ -149,6 +151,7 @@ void SQLFilter::on_pushButton_3_clicked()
 void SQLFilter::on_tableTypes_currentCellChanged(int currentRow, int currentColumn, int previousRow, int previousColumn)
 {
     RulonId=ui->tableTypes->item(currentRow,0)->text().toInt();
+    GlobalcurrentRow=currentRow;
     qDebug() << "RulonDI" << currentRow << ui->tableTypes->item(currentRow,0)->text().toInt();
 }
 
@@ -166,6 +169,18 @@ void SQLFilter::on_FilterReset_clicked()
    ui->filDate->setText("");
    ui->filRulon->setText("");
    ui->filUser->setText("");
+   UpdateTable();
+}
+
+
+void SQLFilter::on_pushButton_4_clicked()
+{
+    //
+   SqlModule *SQLConnection=new SqlModule;
+   SQLConnection->DeleteSQL("Measures","RulonKey="+ui->tableTypes->item(GlobalcurrentRow,0)->text());
+   SQLConnection->DeleteSQL("Rulons","RulonKey="+ui->tableTypes->item(GlobalcurrentRow,0)->text());
+
+   SQLConnection->deleteLater();
    UpdateTable();
 }
 

@@ -133,7 +133,7 @@
    <widget class="QPushButton" name="StopBut">
     <property name="geometry">
      <rect>
-      <x>150</x>
+      <x>139</x>
       <y>10</y>
       <width>131</width>
       <height>71</height>
@@ -146,9 +146,9 @@
    <widget class="QPushButton" name="SettingsBut">
     <property name="geometry">
      <rect>
-      <x>770</x>
+      <x>790</x>
       <y>10</y>
-      <width>141</width>
+      <width>121</width>
       <height>71</height>
      </rect>
     </property>
@@ -215,7 +215,7 @@
    <widget class="QPushButton" name="FilterButton">
     <property name="geometry">
      <rect>
-      <x>634</x>
+      <x>530</x>
       <y>10</y>
       <width>131</width>
       <height>71</height>
@@ -334,10 +334,10 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>400</x>
+      <x>394</x>
       <y>10</y>
-      <width>201</width>
-      <height>61</height>
+      <width>131</width>
+      <height>71</height>
      </rect>
     </property>
     <property name="font">
@@ -355,10 +355,10 @@
    <widget class="QLabel" name="label_3">
     <property name="geometry">
      <rect>
-      <x>300</x>
+      <x>294</x>
       <y>30</y>
       <width>91</width>
-      <height>16</height>
+      <height>31</height>
      </rect>
     </property>
     <property name="font">
@@ -518,6 +518,19 @@
     </property>
     <property name="text">
      <string>PushButton</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="FilterButton_2">
+    <property name="geometry">
+     <rect>
+      <x>670</x>
+      <y>10</y>
+      <width>111</width>
+      <height>71</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Справочник</string>
     </property>
    </widget>
   </widget>

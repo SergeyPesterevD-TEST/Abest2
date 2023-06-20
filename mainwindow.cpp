@@ -10,6 +10,7 @@ MainWindow::MainWindow(QWidget *parent)
     SetupForm = new TSetupForm;
     FilterForm = new SQLFilter;
     NewRulonForm = new NewRulonDialog;
+    ReferenceDialogForm = new ReferenceDialog;
 
     // MODBUS
     Temps = new ModBusMaster(this);
@@ -598,3 +599,11 @@ void MainWindow::on_pushButton_clicked()   //reset lir
 //SQLConnection->FormXlsReport(17);
 SQLConnection->FormXlsSingleReport(17,200);
 }
+
+void MainWindow::on_FilterButton_2_clicked()
+{
+//
+ReferenceDialogForm->UpdateAll();
+ReferenceDialogForm->showMaximized();
+}
+

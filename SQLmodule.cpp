@@ -347,9 +347,10 @@ if (db.open())
           UsersTypes OneRecord;
           OneRecord.key=Qry.value("namekey").toInt();
           OneRecord.username=Qry.value("username").toString();
-          OneRecord.password=Qry.value("password").toInt();
+          OneRecord.password=Qry.value("password").toString();
           OneRecord.shiftnumber=Qry.value("shiftnumber").toInt();
           OneRecord.isadmin=Qry.value("isadmin").toInt();
+          OneRecord.isactive=Qry.value("isactive").toInt();
           OneRecord.fingerprint=Qry.value("fingerprint").toInt();
           UsersList.push_back(OneRecord);
           }
@@ -761,4 +762,80 @@ float SqlModule::CutFloat(float in)
 int in2;
 in2=(int)(in*1000);
 return (float)in2/1000;
+}
+
+int SqlModule::UpdateSQL(QString table, QString where, QStringList columns, QStringList values)
+{
+IniSettings *INIFile =new IniSettings;
+QString ServerName=INIFile->GetParamStr("SQL/ServerName");
+QString dbName=INIFile->GetParamStr("SQL/DBName");
+QSqlDatabase db = QSqlDatabase::addDatabase("QODBC");
+db.setConnectOptions();
+QString dsn=INIFile->GetParamStr("SQL/DSN").arg(ServerName).arg(dbName);
+db.setDatabaseName(dsn);
+if (db.open())
+{
+      QString sQuery;
+      sQuery = "UPDATE "+table+" SET ";
+      for (int i=0;i<columns.count();i++)
+      {
+        sQuery += columns[i] +" = '"+values[i]+"' ";
+        if (i!=columns.count()-1) { sQuery += ", "; }
+      }
+      sQuery += " WHERE "+where;
+      qDebug() << "SqlModule::UpdateSQL" << sQuery;
+      QSqlQuery Qry;
+      return Qry.exec(sQuery);
+}
+}
+
+int SqlModule::InsertSQL(QString table, QStringList columns, QStringList values)
+{
+IniSettings *INIFile =new IniSettings;
+QString ServerName=INIFile->GetParamStr("SQL/ServerName");
+QString dbName=INIFile->GetParamStr("SQL/DBName");
+QSqlDatabase db = QSqlDatabase::addDatabase("QODBC");
+db.setConnectOptions();
+QString dsn=INIFile->GetParamStr("SQL/DSN").arg(ServerName).arg(dbName);
+db.setDatabaseName(dsn);
+if (db.open())
+{
+      QString sQuery;
+      sQuery = "INSERT INTO "+table+" ( ";
+      for (int i=0;i<columns.count();i++)
+      {
+        sQuery += columns[i];
+        if (i!=columns.count()-1) { sQuery += ", "; }
+      }
+      sQuery += ") VALUES (";
+      for (int i=0;i<columns.count();i++)
+      {
+        sQuery += "'"+values[i]+"'";
+        if (i!=columns.count()-1) { sQuery += ", "; }
+      }
+      sQuery += ")";
+
+      qDebug() << "SqlModule::InsertSQL" << sQuery;
+      QSqlQuery Qry;
+      return Qry.exec(sQuery);
+}
+}
+
+int SqlModule::DeleteSQL(QString table, QString where)
+{
+IniSettings *INIFile =new IniSettings;
+QString ServerName=INIFile->GetParamStr("SQL/ServerName");
+QString dbName=INIFile->GetParamStr("SQL/DBName");
+QSqlDatabase db = QSqlDatabase::addDatabase("QODBC");
+db.setConnectOptions();
+QString dsn=INIFile->GetParamStr("SQL/DSN").arg(ServerName).arg(dbName);
+db.setDatabaseName(dsn);
+if (db.open())
+{
+      QString sQuery;
+      sQuery = "DELETE FROM "+table+" WHERE "+where;
+      qDebug() << "SqlModule::DeleteSQL" << sQuery;
+      QSqlQuery Qry;
+      return Qry.exec(sQuery);
+}
 }
