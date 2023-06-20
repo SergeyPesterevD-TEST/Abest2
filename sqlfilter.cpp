@@ -20,11 +20,12 @@ void SQLFilter::UpdateTable()
     //
     // types of materials
 
-    ui->tableTypes->setColumnCount(10);
+    ui->tableTypes->setColumnCount(11);
     ui->tableTypes->setColumnWidth(0,30);
-    for (int i=1;i<6;i++) {ui->tableTypes->setColumnWidth(i,120);}
+    for (int i=1;i<11;i++) {ui->tableTypes->setColumnWidth(i,60);}
+    for (int i=1;i<6;i++) {ui->tableTypes->setColumnWidth(i,110);}
     ui->tableTypes->setShowGrid(true);
-    ui->tableTypes->setHorizontalHeaderLabels({"#","Дата","Пользователь","Рулон","Длина","Точка1, мм","Точка2, мм","Точка3, мм","Точка4, мм","Точка5, мм"});
+    ui->tableTypes->setHorizontalHeaderLabels({"#","Дата","Пользователь","Рулон","Тип","Длина","Т1, мм","Т2, мм","Т3, мм","Т4, мм","Т5, мм"});
 
     IniSettings *INIFile =new IniSettings;
     QString ServerName=INIFile->GetParamStr("SQL/ServerName");
@@ -40,6 +41,8 @@ void SQLFilter::UpdateTable()
     QString sQuery;
     QSqlQuery Qry;
     sQuery = "SELECT * FROM Rulons";
+
+
     SqlModule *SQLConnection=new SqlModule;
     QVector <int> ids;
     ids.clear();
@@ -56,7 +59,29 @@ void SQLFilter::UpdateTable()
     // to delete
 
     int row=0;
-    sQuery = "SELECT * FROM Rulons ORDER BY rulonkey DESC";
+    sQuery = "SELECT * FROM Rulons ";
+
+    QString filter="";
+
+    if (ui->filDate->text()!="") { filter+=" CONVERT(VARCHAR(10), currentdate, 103) LIKE '%"+ui->filDate->text()+"%' ";    }
+
+    if (ui->filRulon->text()!="")
+    {
+        if (filter!="") { filter+=" AND ";}
+        filter+=" rulonnumber LIKE '%"+ui->filRulon->text()+"%' ";
+    }
+    if (ui->filUser->text()!="")
+    {
+        if (filter!="") { filter+=" AND ";}
+        filter+=" username LIKE '%"+ui->filUser->text()+"%' ";
+    }
+    if (filter!="")
+    {
+        sQuery += " WHERE "+filter;
+    }
+    FilterString=" WHERE "+filter+" ORDER BY rulonkey DESC";
+    sQuery+=" ORDER BY rulonkey DESC";
+
     if (Qry.exec(sQuery))
     {
         while (Qry.next())
@@ -66,12 +91,13 @@ void SQLFilter::UpdateTable()
         ui->tableTypes->setItem(row, 1, new QTableWidgetItem(Qry.value("currentdate").toDateTime().toString("dd/MM/yyyy")));
         ui->tableTypes->setItem(row, 2, new QTableWidgetItem(Qry.value("username").toString()));
         ui->tableTypes->setItem(row, 3, new QTableWidgetItem(Qry.value("rulonnumber").toString()));
-        ui->tableTypes->setItem(row, 4, new QTableWidgetItem(QString::number((float)Qry.value("rulonlenght").toFloat()/1000,'f',0)));
-        ui->tableTypes->setItem(row, 5, new QTableWidgetItem(QString::number((float)Qry.value("av1").toFloat()/1000,'f',2)));
-        ui->tableTypes->setItem(row, 6, new QTableWidgetItem(QString::number((float)Qry.value("av2").toFloat()/1000,'f',2)));
-        ui->tableTypes->setItem(row, 7, new QTableWidgetItem(QString::number((float)Qry.value("av3").toFloat()/1000,'f',2)));
-        ui->tableTypes->setItem(row, 8, new QTableWidgetItem(QString::number((float)Qry.value("av4").toFloat()/1000,'f',2)));
-        ui->tableTypes->setItem(row, 9, new QTableWidgetItem(QString::number((float)Qry.value("av5").toFloat()/1000,'f',2)));
+        ui->tableTypes->setItem(row, 4, new QTableWidgetItem(Qry.value("product").toString()));
+        ui->tableTypes->setItem(row, 5, new QTableWidgetItem(QString::number((float)Qry.value("rulonlenght").toFloat()/1000,'f',0)));
+        ui->tableTypes->setItem(row, 6, new QTableWidgetItem(QString::number((float)Qry.value("av1").toFloat()/1000000,'f',3)));
+        ui->tableTypes->setItem(row, 7, new QTableWidgetItem(QString::number((float)Qry.value("av2").toFloat()/1000000,'f',3)));
+        ui->tableTypes->setItem(row, 8, new QTableWidgetItem(QString::number((float)Qry.value("av3").toFloat()/1000000,'f',3)));
+        ui->tableTypes->setItem(row, 9, new QTableWidgetItem(QString::number((float)Qry.value("av4").toFloat()/1000000,'f',3)));
+        ui->tableTypes->setItem(row, 10, new QTableWidgetItem(QString::number((float)Qry.value("av5").toFloat()/1000000,'f',3)));
         row++;
         }
     }
@@ -83,8 +109,14 @@ void SQLFilter::on_pushButton_clicked()
 {
     //
     SqlModule *SQLConnection=new SqlModule;
-    SQLConnection->FormXlsReport(0);
+    SQLConnection->FormXlsReport(0, FilterString);
     SQLConnection->deleteLater();
+
+    QProcess *process = new QProcess(this);
+    QString file = "C:\\Program Files (x86)\\Microsoft Office\\Office12\\excel.exe";
+    QStringList arguments;
+    arguments << "c:\\xls\\output.xlsx";
+    process->start(file, arguments);
 }
 
 void SQLFilter::on_pushButton_2_clicked()
@@ -95,12 +127,20 @@ void SQLFilter::on_pushButton_2_clicked()
 
 void SQLFilter::on_pushButton_3_clicked()
 {
+    qDebug() << "RulonDI=" << RulonId;
     if (RulonId<=0) return;
 
-
     SqlModule *SQLConnection=new SqlModule;
+
     SQLConnection->SqlCalculateStatistics(RulonId);
     SQLConnection->FormXlsSingleReport(RulonId, 200);
+
+    QProcess *process = new QProcess(this);
+    QString file = "C:\\Program Files (x86)\\Microsoft Office\\Office12\\excel.exe";
+    QStringList arguments;
+    arguments << "c:\\xls\\output2.xlsx";
+    process->start(file, arguments);
+
     SQLConnection->deleteLater();
     UpdateTable();
 }
@@ -108,6 +148,24 @@ void SQLFilter::on_pushButton_3_clicked()
 
 void SQLFilter::on_tableTypes_currentCellChanged(int currentRow, int currentColumn, int previousRow, int previousColumn)
 {
-    RulonId=ui->tableTypes->item(currentRow,1)->text().toInt();
+    RulonId=ui->tableTypes->item(currentRow,0)->text().toInt();
+    qDebug() << "RulonDI" << currentRow << ui->tableTypes->item(currentRow,0)->text().toInt();
+}
+
+
+void SQLFilter::on_FilterButton_clicked()
+{
+   // apply filter
+   UpdateTable();
+}
+
+
+void SQLFilter::on_FilterReset_clicked()
+{
+    // reset filter
+   ui->filDate->setText("");
+   ui->filRulon->setText("");
+   ui->filUser->setText("");
+   UpdateTable();
 }
 

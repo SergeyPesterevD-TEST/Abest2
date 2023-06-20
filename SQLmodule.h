@@ -60,8 +60,9 @@ public:
     int SqlGetUsers(QVector <UsersTypes> &UsersList);
     int SqlAddNewRulon(CurrentRulon &rulon);
     int SqlCalculateStatistics(int RulonId);
-    void FormXlsReport(int RulonId);
+    void FormXlsReport(int RulonId, QString FilterString);
     void FormXlsSingleReport(int RulonId, int delta);
+    float CutFloat(float in);
 
 private slots:
 signals:

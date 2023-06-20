@@ -63,6 +63,8 @@ MainWindow::MainWindow(QWidget *parent)
     timer2 = new QTimer;
     connect(timer2, SIGNAL(timeout()), this, SLOT(slotTimerAlarm2()));
     timer2->start(500);
+
+    lamp(1, false);
 }
 
 MainWindow::~MainWindow()
@@ -157,7 +159,7 @@ void MainWindow::on_pushButtonStart_clicked()
     timer3 = new QTimer;
     connect(timer3, SIGNAL(timeout()), this, SLOT(slotTimerAlarm3()));
     timer3->start(INIFile.GetParam("Main/TimerUpdate"));
-
+    lamp(0, false);
     beep=false;
     lampstatus=0;
 
@@ -244,15 +246,11 @@ void MainWindow::on_GetRiftekBtn_clicked()
 
 void MainWindow::on_SettingsBut_clicked()
 {
-   SetupForm->showMaximized();
-
+    SetupForm->showMaximized();
 }
 
 void MainWindow::on_GetLirBtn_clicked()
 {
-   lamp(1,false);
-
-   //    LirMain();
 }
 
 void MainWindow::on_ThreadBut_clicked()
@@ -267,6 +265,7 @@ void MainWindow::UpdateRF(QVector<int> OutputMeasures)
 
 void MainWindow::on_StopBut_clicked()
 {
+    lamp(1, false);
     beep=FALSE;
     lampstatus=-1;
     timer->stop();
@@ -323,11 +322,13 @@ void MainWindow::slotTimerAlarm2()    // забираем из базы боль
 void MainWindow::slotTimerAlarm()   // основной поток по работе с РИФТЭК
 {
     float ThickValue;
+    float ThickOffset;
     QVector<int> CurrentData;
 
     ui->lineProductType->setText(NewRulonForm->Rulon.rulontype);
     ui->lineRulonNumber->setText(NewRulonForm->Rulon.rulonnumber);
     ui->lineThickness->setText(QString::number(NewRulonForm->Rulon.nominal,'f',2));
+    ThickOffset=NewRulonForm->Rulon.offset;
 
     //lamp(1,false);
 
@@ -355,7 +356,10 @@ void MainWindow::slotTimerAlarm()   // основной поток по рабо
 
     if (Measures.data()[SensorTable[i]]==0 || Measures.data()[SensorTable[i+INIFile.GetParam("Main/NumberOfPairs")]]==0)
         {     ThickValue=0;    }
+
+    if (ThickValue!=0) {ThickValue =+ ThickOffset;}
     CurrentData.push_back(ThickValue);
+
     qDebug() << "Канал " << i << SensorTable[i] << SensorTable[i+INIFile.GetParam("Main/NumberOfPairs")]
         << INIFile.GetCalib(i,"Base")
              << Measures.data()[SensorTable[i]] << Measures.data()[SensorTable[i+INIFile.GetParam("Main/NumberOfPairs")]] << "ThickValue =" << ThickValue;

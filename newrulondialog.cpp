@@ -87,3 +87,9 @@ void NewRulonDialog::on_buttonBox_accepted()
 
 }
 
+
+void NewRulonDialog::on_buttonBox_rejected()
+{
+    //
+}
+

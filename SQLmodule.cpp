@@ -8,7 +8,7 @@ SqlModule::SqlModule()
 
 int SqlModule::SqlConnect()
 {
-// to delete
+//
 }
 
 //SQLConnection->SqlGetRulon(NewRulonForm->RulonId, &Top100Measures); // get last points
@@ -435,12 +435,12 @@ if (db.open())
       sQuery = "SELECT AVG(c1) as 'ac1',AVG(c2) as 'ac2',AVG(c3) as 'ac3',AVG(c4) as 'ac4',AVG(c5) as 'ac5',";
       sQuery += "STDEV((c1+c2+c3+c4+c5)/5) as 'stdev', MAX(LIR) as 'LIR', AVG((c1+c2+c3+c4+c5)/5) as AllAverage FROM Measures WHERE rulonkey="+QString::number(RulonId);
       QSqlQuery Qry;
+      int Counter=0;
       if (Qry.exec(sQuery))
       {
-          qDebug() << "STTAT STEP1" << Qry.size();
-          if (Qry.size()<=0) return -1;
           while (Qry.next())
           {
+          Counter++;
           for (int i=1;i<6;i++)
             {
             float value=Qry.value("ac"+QString::number(i)).toReal();
@@ -452,24 +452,28 @@ if (db.open())
           qDebug() << "STTAT STEP1" << allaverage << stdev << length;
           if (allaverage!=0) { variable=stdev/allaverage;} else { variable=0; }
           }
+          qDebug() << "STTAT STEP1" << Counter;
+          if (Counter<=0) return -1;
+
       } else qDebug() << "SELECT SQL Query is _NOT_ OK ";
 
       // next stage
       sQuery = "SELECT (c1+c2+c3+c4+c5)/5 AS c FROM Measures WHERE rulonkey="+QString::number(RulonId);
       v1.clear();
-
+      Counter=0;
       if (Qry.exec(sQuery))
       {
           //          double asymmetry;
           //          double kurtosis;
           //          QVector <qint16> v1;
-          qDebug() << "STTAT STEP2" << Qry.size();
-
-          if (Qry.size()<=0) return -1;
           while (Qry.next())
           {
+          Counter++;
           v1.push_back(Qry.value("c").toReal());
           }
+          qDebug() << "STTAT STEP2" << Counter;
+          if (Counter<=0) return -1;
+
       } else qDebug() << "SELECT SQL Query is _NOT_ OK ";
 
       Statistics *Stats =new Statistics;
@@ -483,8 +487,10 @@ if (db.open())
       catch (...) {
       qDebug() << "STTAT Error GetKurtosisAndAsymmetry function";
       }
-
       delete(Stats);
+
+      if (QString::number(asymmetry)=="nan") {asymmetry=0;}
+      if (QString::number(kurtosis)=="nan") {kurtosis=0;}
 
       qDebug() << "STTAT Averages" << Averages;
       qDebug() << "STTAT AllAverages" <<  allaverage;
@@ -521,7 +527,7 @@ if (db.open())
 
 }
 
-void SqlModule::FormXlsReport(int RulonId)
+void SqlModule::FormXlsReport(int RulonId, QString FilterString)
 {
 //![0]
 QXlsx::Document xlsx("C:\\XLS\\report1.xlsx");
@@ -535,30 +541,34 @@ db.setConnectOptions();
 QString dsn=INIFile->GetParamStr("SQL/DSN").arg(ServerName).arg(dbName);
 db.setDatabaseName(dsn);
 
+QXlsx::Format format, format0;
+format.setNumberFormat("0.000");
+format0.setNumberFormat("0");
+
 int row=3;
 if (db.open())
 {
       //insert
       QString sQuery;
-      sQuery = "SELECT * FROM Rulons";
+      sQuery = "SELECT * FROM Rulons "+FilterString;
       QSqlQuery Qry;
       if (Qry.exec(sQuery))
       {
           while (Qry.next())
           {
-          xlsx.write("A"+QString::number(row),Qry.value("currentdate").toString());
+          xlsx.write("A"+QString::number(row),Qry.value("currentdate").toString().mid(0,10));
           xlsx.write("B"+QString::number(row),Qry.value("username").toString());
           xlsx.write("C"+QString::number(row),Qry.value("rulonnumber").toString());
-          xlsx.write("D"+QString::number(row),Qry.value("av1").toFloat()/1000000);
-          xlsx.write("E"+QString::number(row),Qry.value("av2").toFloat()/1000000);
-          xlsx.write("F"+QString::number(row),Qry.value("av3").toFloat()/1000000);
-          xlsx.write("G"+QString::number(row),Qry.value("av4").toFloat()/1000000);
-          xlsx.write("H"+QString::number(row),Qry.value("av5").toFloat()/1000000);
-          xlsx.write("I"+QString::number(row),Qry.value("av").toFloat()/1000000);
-          xlsx.write("J"+QString::number(row),Qry.value("stdev").toFloat()/1000000);
-          xlsx.write("K"+QString::number(row),Qry.value("variablity").toFloat()/1000);
-          xlsx.write("L"+QString::number(row),Qry.value("assymetria").toFloat()/1000);
-          xlsx.write("M"+QString::number(row),Qry.value("excess").toFloat()/1000);
+          xlsx.write("D"+QString::number(row),CutFloat(Qry.value("av1").toFloat()/1000000),format);
+          xlsx.write("E"+QString::number(row),CutFloat(Qry.value("av2").toFloat()/1000000),format);
+          xlsx.write("F"+QString::number(row),CutFloat(Qry.value("av3").toFloat()/1000000),format);
+          xlsx.write("G"+QString::number(row),CutFloat(Qry.value("av4").toFloat()/1000000),format);
+          xlsx.write("H"+QString::number(row),CutFloat(Qry.value("av5").toFloat()/1000000),format);
+          xlsx.write("I"+QString::number(row),CutFloat(Qry.value("av").toFloat()/1000000),format);
+          xlsx.write("J"+QString::number(row),CutFloat(Qry.value("stdev").toFloat()/1000000),format);
+          xlsx.write("K"+QString::number(row),CutFloat(Qry.value("variablity").toFloat()/1000),format);
+          xlsx.write("L"+QString::number(row),CutFloat(Qry.value("assymetria").toFloat()/1000),format);
+          xlsx.write("M"+QString::number(row),CutFloat(Qry.value("excess").toFloat()/1000),format);
 
           row++;
           }
@@ -589,6 +599,11 @@ db.setConnectOptions();
 QString dsn=INIFile->GetParamStr("SQL/DSN").arg(ServerName).arg(dbName);
 db.setDatabaseName(dsn);
 
+
+QXlsx::Format format, format0;
+format.setNumberFormat("0.000");
+format0.setNumberFormat("0");
+
 int row=6;
 float oldposition=0;
 if (db.open())
@@ -606,12 +621,12 @@ if (db.open())
             {
 
             oldposition=Qry.value("LIR").toFloat();
-            xlsx.write("A"+QString::number(row),"Толщина на длине "+QString::number(Qry.value("LIR").toFloat(),'f',0));
-            xlsx.write("B"+QString::number(row),Qry.value("c1").toFloat()/1000);
-            xlsx.write("C"+QString::number(row),Qry.value("c2").toFloat()/1000);
-            xlsx.write("D"+QString::number(row),Qry.value("c3").toFloat()/1000);
-            xlsx.write("E"+QString::number(row),Qry.value("c4").toFloat()/1000);
-            xlsx.write("F"+QString::number(row),Qry.value("c5").toFloat()/1000);
+            xlsx.write("A"+QString::number(row),"Толщина на длине "+QString::number(Qry.value("LIR").toFloat(),'f',0),format0);
+            xlsx.write("B"+QString::number(row),Qry.value("c1").toFloat()/1000,format);
+            xlsx.write("C"+QString::number(row),Qry.value("c2").toFloat()/1000,format);
+            xlsx.write("D"+QString::number(row),Qry.value("c3").toFloat()/1000,format);
+            xlsx.write("E"+QString::number(row),Qry.value("c4").toFloat()/1000,format);
+            xlsx.write("F"+QString::number(row),Qry.value("c5").toFloat()/1000,format);
             row++;
             }
           }
@@ -625,11 +640,11 @@ if (db.open())
       {
           if (Qry.next())
           {
-          xlsx.write("B1",Qry.value("currentdate").toString());
+          xlsx.write("B1",Qry.value("currentdate").toString().mid(0,10));
           xlsx.write("B3",Qry.value("username").toString());
           xlsx.write("B2",Qry.value("rulonnumber").toString());
           xlsx.write("F1",Qry.value("product").toString());
-          xlsx.write("F2",Qry.value("rulonlenght").toFloat()/1000);
+          xlsx.write("F2",Qry.value("rulonlenght").toFloat()/1000,format0);
 
           xlsx.write("A"+QString::number(row),"Средняя толщина по каждому каналу, мм");
           xlsx.write("A"+QString::number(row+1),"Максимальное значение, мм");
@@ -639,11 +654,11 @@ if (db.open())
           xlsx.write("A"+QString::number(row+5),"Показатель асимметрии");
           xlsx.write("A"+QString::number(row+6),"Показатель эксцесса");
 
-          xlsx.write("B"+QString::number(row),Qry.value("av1").toFloat()/1000000);
-          xlsx.write("C"+QString::number(row),Qry.value("av2").toFloat()/1000000);
-          xlsx.write("D"+QString::number(row),Qry.value("av3").toFloat()/1000000);
-          xlsx.write("E"+QString::number(row),Qry.value("av4").toFloat()/1000000);
-          xlsx.write("F"+QString::number(row),Qry.value("av5").toFloat()/1000000);
+          xlsx.write("B"+QString::number(row),CutFloat(Qry.value("av1").toFloat()/1000000),format);
+          xlsx.write("C"+QString::number(row),CutFloat(Qry.value("av2").toFloat()/1000000),format);
+          xlsx.write("D"+QString::number(row),CutFloat(Qry.value("av3").toFloat()/1000000),format);
+          xlsx.write("E"+QString::number(row),CutFloat(Qry.value("av4").toFloat()/1000000),format);
+          xlsx.write("F"+QString::number(row),CutFloat(Qry.value("av5").toFloat()/1000000),format);
 
           Averages.push_back(Qry.value("av1").toFloat()/1000000);
           Averages.push_back(Qry.value("av2").toFloat()/1000000);
@@ -659,11 +674,11 @@ if (db.open())
       {
           if (Qry.next())
           {
-          xlsx.write("B"+QString::number(row+1),Qry.value("c1").toFloat()/1000);
-          xlsx.write("C"+QString::number(row+1),Qry.value("c2").toFloat()/1000);
-          xlsx.write("D"+QString::number(row+1),Qry.value("c3").toFloat()/1000);
-          xlsx.write("E"+QString::number(row+1),Qry.value("c4").toFloat()/1000);
-          xlsx.write("F"+QString::number(row+1),Qry.value("c5").toFloat()/1000);
+          xlsx.write("B"+QString::number(row+1),CutFloat(Qry.value("c1").toFloat()/1000),format);
+          xlsx.write("C"+QString::number(row+1),CutFloat(Qry.value("c2").toFloat()/1000),format);
+          xlsx.write("D"+QString::number(row+1),CutFloat(Qry.value("c3").toFloat()/1000),format);
+          xlsx.write("E"+QString::number(row+1),CutFloat(Qry.value("c4").toFloat()/1000),format);
+          xlsx.write("F"+QString::number(row+1),CutFloat(Qry.value("c5").toFloat()/1000),format);
           }
       }
 
@@ -672,11 +687,11 @@ if (db.open())
       {
           if (Qry.next())
           {
-          xlsx.write("B"+QString::number(row+2),Qry.value("c1").toFloat()/1000);
-          xlsx.write("C"+QString::number(row+2),Qry.value("c2").toFloat()/1000);
-          xlsx.write("D"+QString::number(row+2),Qry.value("c3").toFloat()/1000);
-          xlsx.write("E"+QString::number(row+2),Qry.value("c4").toFloat()/1000);
-          xlsx.write("F"+QString::number(row+2),Qry.value("c5").toFloat()/1000);
+          xlsx.write("B"+QString::number(row+2),CutFloat(Qry.value("c1").toFloat()/1000),format);
+          xlsx.write("C"+QString::number(row+2),CutFloat(Qry.value("c2").toFloat()/1000),format);
+          xlsx.write("D"+QString::number(row+2),CutFloat(Qry.value("c3").toFloat()/1000),format);
+          xlsx.write("E"+QString::number(row+2),CutFloat(Qry.value("c4").toFloat()/1000),format);
+          xlsx.write("F"+QString::number(row+2),CutFloat(Qry.value("c5").toFloat()/1000),format);
           }
       }
 
@@ -685,17 +700,17 @@ if (db.open())
       {
           if (Qry.next())
           {
-          xlsx.write("B"+QString::number(row+3),Qry.value("c1").toFloat()/1000);
-          xlsx.write("C"+QString::number(row+3),Qry.value("c2").toFloat()/1000);
-          xlsx.write("D"+QString::number(row+3),Qry.value("c3").toFloat()/1000);
-          xlsx.write("E"+QString::number(row+3),Qry.value("c4").toFloat()/1000);
-          xlsx.write("F"+QString::number(row+3),Qry.value("c5").toFloat()/1000);
+          xlsx.write("B"+QString::number(row+3),CutFloat(Qry.value("c1").toFloat()/1000),format);
+          xlsx.write("C"+QString::number(row+3),CutFloat(Qry.value("c2").toFloat()/1000),format);
+          xlsx.write("D"+QString::number(row+3),CutFloat(Qry.value("c3").toFloat()/1000),format);
+          xlsx.write("E"+QString::number(row+3),CutFloat(Qry.value("c4").toFloat()/1000),format);
+          xlsx.write("F"+QString::number(row+3),CutFloat(Qry.value("c5").toFloat()/1000),format);
 
-          if (Averages[0]!=0) xlsx.write("B"+QString::number(row+4),Qry.value("c1").toFloat()/1000/Averages[0]);
-          if (Averages[1]!=0) xlsx.write("C"+QString::number(row+4),Qry.value("c2").toFloat()/1000/Averages[1]);
-          if (Averages[2]!=0) xlsx.write("D"+QString::number(row+4),Qry.value("c3").toFloat()/1000/Averages[2]);
-          if (Averages[3]!=0) xlsx.write("E"+QString::number(row+4),Qry.value("c4").toFloat()/1000/Averages[3]);
-          if (Averages[4]!=0) xlsx.write("F"+QString::number(row+4),Qry.value("c5").toFloat()/1000/Averages[4]);
+          if (Averages[0]!=0) xlsx.write("B"+QString::number(row+4),CutFloat(Qry.value("c1").toFloat()/1000/Averages[0]),format);
+          if (Averages[1]!=0) xlsx.write("C"+QString::number(row+4),CutFloat(Qry.value("c2").toFloat()/1000/Averages[1]),format);
+          if (Averages[2]!=0) xlsx.write("D"+QString::number(row+4),CutFloat(Qry.value("c3").toFloat()/1000/Averages[2]),format);
+          if (Averages[3]!=0) xlsx.write("E"+QString::number(row+4),CutFloat(Qry.value("c4").toFloat()/1000/Averages[3]),format);
+          if (Averages[4]!=0) xlsx.write("F"+QString::number(row+4),CutFloat(Qry.value("c5").toFloat()/1000/Averages[4]),format);
           }
       }
 
@@ -726,8 +741,8 @@ if (db.open())
         if (i==4) Column="E";
         if (i==5) Column="F";
 
-        xlsx.write(Column+QString::number(row+5),asymmetry);
-        xlsx.write(Column+QString::number(row+6),kurtosis);
+        xlsx.write(Column+QString::number(row+5),asymmetry,format);
+        xlsx.write(Column+QString::number(row+6),kurtosis,format);
 
       }
 
@@ -739,4 +754,11 @@ if (db.open())
 }
 xlsx.saveAs("c:\\XLS\\output2.xlsx");
 
+}
+
+float SqlModule::CutFloat(float in)
+{
+int in2;
+in2=(int)(in*1000);
+return (float)in2/1000;
 }

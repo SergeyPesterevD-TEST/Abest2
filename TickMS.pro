@@ -31,6 +31,7 @@ SOURCES += \
     mainwindow.cpp \
     newrulondialog.cpp \
     qcustomplot.cpp \
+    referencedialog.cpp \
     rfthread.cpp \
     sqlfilter.cpp \
     statistics.cpp \
@@ -105,6 +106,7 @@ HEADERS += \
     newrulondialog.h \
     owen/owen_io.h \
     qcustomplot.h \
+    referencedialog.h \
     rfthread.h \
     sqlfilter.h \
     statistics.h \
@@ -113,6 +115,7 @@ HEADERS += \
 FORMS += \
     mainwindow.ui \
     newrulondialog.ui \
+    referencedialog.ui \
     sqlfilter.ui \
     tsetupform.ui
 
