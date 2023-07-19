@@ -11,6 +11,7 @@ MainWindow::MainWindow(QWidget *parent)
     FilterForm = new SQLFilter;
     NewRulonForm = new NewRulonDialog;
     ReferenceDialogForm = new ReferenceDialog;
+    UserDialogForm = new UserDialog;
 
     // MODBUS
     Temps = new ModBusMaster(this);
@@ -26,7 +27,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->StopBut->setHidden(true);
 
-    MainWindow::makePlot();
+    makePlot();
+
     DataCount=0;
     srand(8);
 
@@ -66,6 +68,8 @@ MainWindow::MainWindow(QWidget *parent)
     timer2->start(500);
 
     lamp(1, false);
+    UserDialogForm->UpdateAll();
+    UserDialogForm->showFullScreen();
 }
 
 MainWindow::~MainWindow()
@@ -82,7 +86,9 @@ QColor MainWindow::GetColorForChannel(int i)
     if (i==2) Color.setRgb(255,0,255);
     if (i==3) Color.setRgb(100,100,255);
     if (i==4) Color.setRgb(0,255,255);
-    if (i==5) Color.setRgb(0,255,0);
+    if (i==5) Color.setRgb(0,255,0); //average
+    if (i==6) Color.setRgb(160,160,160); //max
+    if (i==7) Color.setRgb(160,160,160); //min
     return Color;
 }
 
@@ -92,10 +98,10 @@ void MainWindow::makePlot()
     QPen Pen;
 
     // creating Plots and set Pen type
-    for (int i=0;i<6;i++)
+    for (int i=0;i<8;i++)
     {
     Pen.setColor(GetColorForChannel(i));
-    Pen.setWidth(3);
+    if (i==5) {Pen.setWidth(3);} else { Pen.setWidth(1);}
     ui->customPlot->addGraph();
     ui->customPlot->graph(i)->setPen(Pen);
     }
@@ -155,9 +161,11 @@ void MainWindow::on_pushButtonStart_clicked()
     ui->StopBut->setHidden(false);
     FilterCount=0;
     timer = new QTimer;
+    // основной поток по работе с РИФТЭК
     connect(timer, SIGNAL(timeout()), this, SLOT(slotTimerAlarm()));
     timer->start(INIFile.GetParam("Main/Timer"));
     timer3 = new QTimer;
+    // прорисовка графика медленная
     connect(timer3, SIGNAL(timeout()), this, SLOT(slotTimerAlarm3()));
     timer3->start(INIFile.GetParam("Main/TimerUpdate"));
     lamp(0, false);
@@ -169,16 +177,7 @@ void MainWindow::on_pushButtonStart_clicked()
 //    ui->customPlot->graph(0)->data()->clear();
 //    ui->customPlot->replot();
 
-/*
-    // потоковая работа с РИФТЭК
-    connect(&RFMeasures,&RFThread::EmitMeasures,this,&MainWindow::UpdateRF);
-    connect(&RFThreadThread,&QThread::started,&RFMeasures,&RFThread::run);
-    connect(&RFMeasures, &RFThread::finished, &RFThreadThread,
-    &QThread::terminate);
-    RFMeasures.moveToThread(&RFThreadThread);
-    RFMeasures.setRunning(true);
-    RFThreadThread.start();
-*/
+
 }
 
 
@@ -186,32 +185,42 @@ void MainWindow::on_pushButtonStart_clicked()
 void MainWindow::RepaintRiftek(QVector<SqlModule::Top100> *Top100Measures)
 {
     SqlModule::Top100 OneMeasure;
-    float MaxSpeed, MinSpeed;
-    MinSpeed=100000;
-    MaxSpeed=-100000;
 
     // cleaning
-    for (int i=0;i<INIFile.GetParam("Main/NumberOfPairs");i++)
+    for (int i=0;i<8;i++)
     {
     ui->customPlot->graph(i)->data()->clear();
     }
 
-
     // setting XAxis in time
-    QSharedPointer<QCPAxisTickerDateTime> timeTicker(new QCPAxisTickerDateTime);
-    timeTicker->setDateTimeFormat("hh:mm");
+    //    QSharedPointer<QCPAxisTickerDateTime> timeTicker(new QCPAxisTickerDateTime);
+    //    timeTicker->setDateTimeFormat("hh:mm");
+    //    ui->customPlot->xAxis->setTicker(timeTicker);
 
-    ui->customPlot->xAxis->setTicker(timeTicker);
+    if (Top100Measures->count()<=5) return;
 
+    float tBegin,tEnd;
+    OneMeasure=Top100Measures->data()[0];
+    tBegin=OneMeasure.LIR;
+    OneMeasure=Top100Measures->data()[Top100Measures->count()-1];
+    tEnd=OneMeasure.LIR;
+    ui->customPlot->xAxis->setRange(tBegin, tEnd);
+    ui->customPlot->yAxis->setRange(NewRulonForm->Rulon.min-0.1, NewRulonForm->Rulon.max+0.1);
 
-    qint64 tBegin,tEnd;
-    for (int i=0;i<Top100Measures->count();i++)
+    qDebug() << "GRAPH tBegin" << tBegin;
+    qDebug() << "GRAPH tEnd" << tEnd;
+
+    // max and min
+    ui->customPlot->graph(6)->addData(tBegin,NewRulonForm->Rulon.max);
+    ui->customPlot->graph(6)->addData(tEnd,NewRulonForm->Rulon.max);
+    ui->customPlot->graph(7)->addData(tBegin,NewRulonForm->Rulon.min);
+    ui->customPlot->graph(7)->addData(tEnd,NewRulonForm->Rulon.min);
+    //
+
+    for (int j=0;j<Top100Measures->count();j++)
     {
-    OneMeasure=Top100Measures->data()[i];
-
-    if (i==0) { tBegin=OneMeasure.cdatetime.toSecsSinceEpoch(); }
-    if (i==Top100Measures->count()-1)  {  tEnd=OneMeasure.cdatetime.toSecsSinceEpoch();
-    }
+    OneMeasure=Top100Measures->data()[j];
+    float Average=0;
 
     for (int i=0;i<INIFile.GetParam("Main/NumberOfPairs");i++)
     {
@@ -222,17 +231,16 @@ void MainWindow::RepaintRiftek(QVector<SqlModule::Top100> *Top100Measures)
             (i==3 && ui->ch04->isChecked())     ||
             (i==4 && ui->ch05->isChecked()))
         {
-        ui->customPlot->graph(i)->addData(OneMeasure.cdatetime.toSecsSinceEpoch(),(double)OneMeasure.data.data()[i]/1000);
+        Average+=(double)OneMeasure.data.data()[i]/1000;
+        ui->customPlot->graph(i)->addData(OneMeasure.LIR,(double)OneMeasure.data.data()[i]/1000);
         }
     }
 
-    if (OneMeasure.SPEED>MaxSpeed) MaxSpeed=OneMeasure.SPEED;
-    if (OneMeasure.SPEED<MinSpeed && OneMeasure.SPEED>0) { MinSpeed=OneMeasure.SPEED;}
-
+    if (ui->chAll->isChecked())  // Average
+    {
+    ui->customPlot->graph(5)->addData(OneMeasure.LIR,Average/5);}
     }
-    ui->customPlot->xAxis->setRange(tBegin, tEnd);
 
-    ui->customPlot->yAxis->setRange((double)INIFile.GetParam("Plot/Ymin")/10, (double)INIFile.GetParam("Plot/Ymax")/10);
     ui->customPlot->replot();
 }
 
@@ -318,6 +326,27 @@ void MainWindow::slotTimerAlarm2()    // забираем из базы боль
             {
             }
 
+      if (UserDialogForm->CurrentUser=="")
+            {
+            ui->pushButtonStart->setEnabled(false);
+            ui->StopBut->setEnabled(false);
+            } else
+                {
+                ui->pushButtonStart->setEnabled(true);
+                ui->StopBut->setEnabled(true);
+                }
+        if (UserDialogForm->CurrentisAdmin==1)
+            {
+                ui->FilterButton->setEnabled(true);
+                ui->FilterButton_2->setEnabled(true);
+                ui->SettingsBut->setEnabled(true);
+            } else
+            {
+                ui->FilterButton->setEnabled(false);
+                ui->FilterButton_2->setEnabled(false);
+                ui->SettingsBut->setEnabled(false);
+            }
+            NewRulonForm->Rulon.username=UserDialogForm->CurrentUser;
 }
 
 void MainWindow::slotTimerAlarm()   // основной поток по работе с РИФТЭК
@@ -358,12 +387,14 @@ void MainWindow::slotTimerAlarm()   // основной поток по рабо
     if (Measures.data()[SensorTable[i]]==0 || Measures.data()[SensorTable[i+INIFile.GetParam("Main/NumberOfPairs")]]==0)
         {     ThickValue=0;    }
 
-    if (ThickValue!=0) {ThickValue =+ ThickOffset;}
+    if (NewRulonForm->RulonId<=0) { ThickOffset=0; }
+    qDebug() << "Канал " << i << SensorTable[i] << SensorTable[i+INIFile.GetParam("Main/NumberOfPairs")]
+             << INIFile.GetCalib(i,"Base")
+             << Measures.data()[SensorTable[i]] << Measures.data()[SensorTable[i+INIFile.GetParam("Main/NumberOfPairs")]] << "ThickValue =" << ThickValue << "offset" << ThickOffset;
+
+    if (ThickValue!=0) {ThickValue = ThickValue + ThickOffset*1000;}
     CurrentData.push_back(ThickValue);
 
-    qDebug() << "Канал " << i << SensorTable[i] << SensorTable[i+INIFile.GetParam("Main/NumberOfPairs")]
-        << INIFile.GetCalib(i,"Base")
-             << Measures.data()[SensorTable[i]] << Measures.data()[SensorTable[i+INIFile.GetParam("Main/NumberOfPairs")]] << "ThickValue =" << ThickValue;
     }
 
     SqlModule::Top100 OnePacket;
@@ -398,8 +429,12 @@ void MainWindow::slotTimerAlarm()   // основной поток по рабо
 void MainWindow::slotTimerAlarm3()  // прорисовка графика медленная
 {
 // to add get all the rulon
+    qDebug() << "RulonID " << NewRulonForm->RulonId;
+    if (NewRulonForm->RulonId==-1) return;
+
     SQLConnection->SqlGetRulon(NewRulonForm->RulonId, &Top100Measures); // get last points
-    //SQLConnection->SqlCalculateStatistics(17);
+    //SQLConnection->SqlGetRulon(10062, &Top100Measures); // get last points
+
     qDebug() << "TESTGRAPH";
     RepaintRiftek(&Top100Measures);
 }
@@ -595,9 +630,34 @@ LightPost->WriteMultipleCoils(0,status,4);
 
 void MainWindow::on_pushButton_clicked()   //reset lir
 {
-//
-//SQLConnection->FormXlsReport(17);
-SQLConnection->FormXlsSingleReport(17,200);
+UserDialogForm->UpdateAll();
+UserDialogForm->showFullScreen();
+
+//double asymmetry;
+//double kurtosis;
+//QVector <qint16> v1;
+
+//            v1.clear();
+//            v1.push_back(3);
+//            v1.push_back(4);
+//            v1.push_back(5);
+//            v1.push_back(2);
+//            v1.push_back(3);
+//            v1.push_back(4);
+//            v1.push_back(5);
+//            v1.push_back(6);
+//            v1.push_back(4);
+//            v1.push_back(7);
+//            Statistics *Stats =new Statistics;
+//            try
+//            {
+//            Stats->GetKurtosisAndAsymmetry(v1,asymmetry,kurtosis);
+//            qDebug() << "SUPERTEST" << asymmetry << kurtosis;
+//            }
+//            catch (...) {
+//        qDebug() << "STTAT Error GetKurtosisAndAsymmetry function";
+//            }
+//            delete(Stats);
 }
 
 void MainWindow::on_FilterButton_2_clicked()
@@ -605,5 +665,11 @@ void MainWindow::on_FilterButton_2_clicked()
 //
 ReferenceDialogForm->UpdateAll();
 ReferenceDialogForm->showMaximized();
+}
+
+
+void MainWindow::on_pushButton_2_clicked()
+{
+
 }
 

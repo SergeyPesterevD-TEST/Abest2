@@ -35,7 +35,8 @@ SOURCES += \
     rfthread.cpp \
     sqlfilter.cpp \
     statistics.cpp \
-    tsetupform.cpp
+    tsetupform.cpp \
+    userdialog.cpp
 
 HEADERS += \
     ModBusMaster.h \
@@ -110,14 +111,16 @@ HEADERS += \
     rfthread.h \
     sqlfilter.h \
     statistics.h \
-    tsetupform.h
+    tsetupform.h \
+    userdialog.h
 
 FORMS += \
     mainwindow.ui \
     newrulondialog.ui \
     referencedialog.ui \
     sqlfilter.ui \
-    tsetupform.ui
+    tsetupform.ui \
+    userdialog.ui
 
 TRANSLATIONS += \
     TickMS_ru_RU.ts

@@ -20,6 +20,7 @@
 #include "owen/owen_io.h"
 #include "newrulondialog.h"
 #include "referencedialog.h"
+#include "userdialog.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -103,6 +104,8 @@ private slots:
 
     void on_FilterButton_2_clicked();
 
+    void on_pushButton_2_clicked();
+
 private:
 
     QThread RFThreadThread;
@@ -135,6 +138,7 @@ private:
     SQLFilter *FilterForm;
     NewRulonDialog *NewRulonForm;
     ReferenceDialog *ReferenceDialogForm;
+    UserDialog *UserDialogForm;
     //
     Ui::MainWindow *ui;
     RF603 RFSensors;

@@ -24,26 +24,40 @@ int SqlModule::SqlGetRulon(int RulonId, QVector<Top100> *Top100Measures)
     if (db.open())
     {
         QString sQuery;
-        sQuery = "SELECT * FROM ["+dbName+"].[dbo].[Measures] WHERE rulonkey="+QString::number(RulonId)+" ORDER BY cdatetime DESC;";
+        sQuery = "SELECT MAX(LIR) as MAXLIR FROM ["+dbName+"].[dbo].[Measures] WHERE rulonkey="+QString::number(RulonId);
         QSqlQuery Qry;
+        float MAXLIR;
+
         if (Qry.exec(sQuery))
         {
-            Qry.last();
+        Qry.first();
+        MAXLIR=Qry.value("MAXLIR").toFloat();
+        }
+        qDebug() << "CuttingEdges" << MAXLIR;
+
+        sQuery =  "SELECT * FROM ["+dbName+"].[dbo].[Measures] ";
+        sQuery += "WHERE rulonkey="+QString::number(RulonId)+" AND LIR>"+INIFile->GetParamStr("Plot/cutBegin");
+        sQuery += " AND LIR<"+QString::number(MAXLIR-INIFile->GetParam("Plot/cutEnd"))+" ORDER BY cdatetime DESC;";
+        qDebug() << "CuttingEdges" << sQuery;
+        if (Qry.exec(sQuery))
+        {
+            //Qry.last();
             Top100Measures->clear();
-            while (Qry.previous())
+            while (Qry.next())
             {
                 Top100 OneMeasure;
                 OneMeasure.rulon=Qry.value("RulonKey").toString();
                 OneMeasure.cdatetime=Qry.value("cdatetime").toDateTime();
                 OneMeasure.data.clear();
-                for (int i=0;i<INIFile->GetParam("Main/NumberOfPairs");i++)
+                for (int i=1;i<INIFile->GetParam("Main/NumberOfPairs")+1;i++)
                 {
                     OneMeasure.data.push_back(Qry.value("c"+QString::number(i)).toReal());
+                    //qDebug() << "ADDPOINT" << "c"+QString::number(i) << Qry.value("c"+QString::number(i)).toReal();
                 }
-                Top100Measures->push_back(OneMeasure);
-                //Top100Measures->push_front(OneMeasure);
                 OneMeasure.LIR=Qry.value("LIR").toReal();
                 OneMeasure.SPEED=60*Qry.value("SPEED").toReal();
+
+                Top100Measures->push_back(OneMeasure);
             }
         } else qDebug() << "SELECT SQL Query is _NOT_ OK ";
         //qDebug() << sQuery;
@@ -407,8 +421,6 @@ if (db.open())
 return result;
 }
 
-
-
 int SqlModule::SqlCalculateStatistics(int RulonId)
 {
 QVector<float> Averages;
@@ -432,10 +444,22 @@ QString dsn=INIFile->GetParamStr("SQL/DSN").arg(ServerName).arg(dbName);
 db.setDatabaseName(dsn);
 if (db.open())
 {
-      QString sQuery;
-      sQuery = "SELECT AVG(c1) as 'ac1',AVG(c2) as 'ac2',AVG(c3) as 'ac3',AVG(c4) as 'ac4',AVG(c5) as 'ac5',";
-      sQuery += "STDEV((c1+c2+c3+c4+c5)/5) as 'stdev', MAX(LIR) as 'LIR', AVG((c1+c2+c3+c4+c5)/5) as AllAverage FROM Measures WHERE rulonkey="+QString::number(RulonId);
+      QString sQuery, sLIRQuery;
+      sQuery = "SELECT MAX(LIR) as MAXLIR FROM ["+dbName+"].[dbo].[Measures] WHERE rulonkey="+QString::number(RulonId);
       QSqlQuery Qry;
+      float MAXLIR;
+
+      if (Qry.exec(sQuery))
+      {
+          Qry.first();
+          MAXLIR=Qry.value("MAXLIR").toFloat();
+      }
+
+      sLIRQuery =  " AND LIR>"+INIFile->GetParamStr("Plot/cutBegin")+" AND LIR<"+QString::number(MAXLIR-INIFile->GetParam("Plot/cutEnd"));
+
+      sQuery = "SELECT AVG(c1) as 'ac1',AVG(c2) as 'ac2',AVG(c3) as 'ac3',AVG(c4) as 'ac4',AVG(c5) as 'ac5',";
+      sQuery += "STDEV((c1+c2+c3+c4+c5)/5) as 'stdev', MAX(LIR) as 'LIR', AVG((c1+c2+c3+c4+c5)/5) as AllAverage FROM Measures WHERE rulonkey="+QString::number(RulonId)+sLIRQuery;
+
       int Counter=0;
       if (Qry.exec(sQuery))
       {
@@ -449,7 +473,7 @@ if (db.open())
             }
           allaverage=Qry.value("AllAverage").toReal();
           stdev=Qry.value("stdev").toReal();
-          length=Qry.value("LIR").toReal();
+          length=MAXLIR;
           qDebug() << "STTAT STEP1" << allaverage << stdev << length;
           if (allaverage!=0) { variable=stdev/allaverage;} else { variable=0; }
           }
@@ -459,7 +483,7 @@ if (db.open())
       } else qDebug() << "SELECT SQL Query is _NOT_ OK ";
 
       // next stage
-      sQuery = "SELECT (c1+c2+c3+c4+c5)/5 AS c FROM Measures WHERE rulonkey="+QString::number(RulonId);
+      sQuery = "SELECT (c1+c2+c3+c4+c5)/5 AS c FROM Measures WHERE rulonkey="+QString::number(RulonId)+sLIRQuery;
       v1.clear();
       Counter=0;
       if (Qry.exec(sQuery))
@@ -548,8 +572,8 @@ format0.setNumberFormat("0");
 
 int row=3;
 if (db.open())
-{
-      //insert
+{     
+      //insert      
       QString sQuery;
       sQuery = "SELECT * FROM Rulons "+FilterString;
       QSqlQuery Qry;
@@ -610,17 +634,26 @@ float oldposition=0;
 if (db.open())
 {
       //insert
-      QString sQuery;
+      QString sQuery, sLIRQuery;
       QSqlQuery Qry;
 
-      sQuery = "SELECT *  FROM Measures WHERE rulonkey="+QString::number(RulonId);
+      sQuery = "SELECT MAX(LIR) as MAXLIR FROM ["+dbName+"].[dbo].[Measures] WHERE rulonkey="+QString::number(RulonId);
+      float MAXLIR;
+
+      if (Qry.exec(sQuery))
+      {
+          Qry.first();
+          MAXLIR=Qry.value("MAXLIR").toFloat();
+      }
+      sLIRQuery =  " AND LIR>"+INIFile->GetParamStr("Plot/cutBegin")+" AND LIR<"+QString::number(MAXLIR-INIFile->GetParam("Plot/cutEnd"));
+
+      sQuery = "SELECT *  FROM Measures WHERE rulonkey="+QString::number(RulonId)+sLIRQuery;
       if (Qry.exec(sQuery))
       {
           while (Qry.next())
           {
           if (oldposition==0 || Qry.value("LIR").toFloat()-oldposition>delta)
             {
-
             oldposition=Qry.value("LIR").toFloat();
             xlsx.write("A"+QString::number(row),"Толщина на длине "+QString::number(Qry.value("LIR").toFloat(),'f',0),format0);
             xlsx.write("B"+QString::number(row),Qry.value("c1").toFloat()/1000,format);
@@ -670,7 +703,7 @@ if (db.open())
       } else qDebug() << "SELECT SQL Query is _NOT_ OK ";
 
 
-      sQuery = "SELECT MAX(c1) as c1, MAX(c2) as c2, MAX(c3) as c3, MAX(c4) as c4, MAX(c5) as c5 FROM Measures WHERE rulonkey="+QString::number(RulonId);
+      sQuery = "SELECT MAX(c1) as c1, MAX(c2) as c2, MAX(c3) as c3, MAX(c4) as c4, MAX(c5) as c5 FROM Measures WHERE rulonkey="+QString::number(RulonId)+sLIRQuery;
       if (Qry.exec(sQuery))
       {
           if (Qry.next())
@@ -683,7 +716,7 @@ if (db.open())
           }
       }
 
-      sQuery = "SELECT MIN(c1) as c1, MIN(c2) as c2, MIN(c3) as c3, MIN(c4) as c4, MIN(c5) as c5 FROM Measures WHERE rulonkey="+QString::number(RulonId);
+      sQuery = "SELECT MIN(c1) as c1, MIN(c2) as c2, MIN(c3) as c3, MIN(c4) as c4, MIN(c5) as c5 FROM Measures WHERE rulonkey="+QString::number(RulonId)+sLIRQuery;
       if (Qry.exec(sQuery))
       {
           if (Qry.next())
@@ -696,7 +729,7 @@ if (db.open())
           }
       }
 
-      sQuery = "SELECT STDEV(c1) as c1, STDEV(c2) as c2, STDEV(c3) as c3, STDEV(c4) as c4, STDEV(c5) as c5 FROM Measures WHERE rulonkey="+QString::number(RulonId);
+      sQuery = "SELECT STDEV(c1) as c1, STDEV(c2) as c2, STDEV(c3) as c3, STDEV(c4) as c4, STDEV(c5) as c5 FROM Measures WHERE rulonkey="+QString::number(RulonId)+sLIRQuery;
       if (Qry.exec(sQuery))
       {
           if (Qry.next())
@@ -715,7 +748,7 @@ if (db.open())
           }
       }
 
-      sQuery = "SELECT * FROM Measures WHERE rulonkey="+QString::number(RulonId);
+      sQuery = "SELECT * FROM Measures WHERE rulonkey="+QString::number(RulonId)+sLIRQuery;
       double asymmetry;
       double kurtosis;
       QVector <qint16> v1;
@@ -732,7 +765,13 @@ if (db.open())
                 } else qDebug() << "SELECT SQL Query is _NOT_ OK ";
 
         Statistics *Stats =new Statistics;
-        Stats->GetKurtosisAndAsymmetry(v1,asymmetry,kurtosis);
+                try
+                {
+                    Stats->GetKurtosisAndAsymmetry(v1,asymmetry,kurtosis);
+                }
+                catch (...) {
+                    qDebug() << "STTAT Error GetKurtosisAndAsymmetry function";
+                }
         delete(Stats);
 
         QString Column;

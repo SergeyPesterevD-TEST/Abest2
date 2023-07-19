@@ -144,6 +144,9 @@
     </property>
    </widget>
    <widget class="QPushButton" name="SettingsBut">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
     <property name="geometry">
      <rect>
       <x>790</x>
@@ -213,6 +216,9 @@
     </property>
    </widget>
    <widget class="QPushButton" name="FilterButton">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
     <property name="geometry">
      <rect>
       <x>530</x>
@@ -308,8 +314,8 @@
    <widget class="QCheckBox" name="AlarmBox">
     <property name="geometry">
      <rect>
-      <x>1220</x>
-      <y>130</y>
+      <x>1150</x>
+      <y>138</y>
       <width>101</width>
       <height>41</height>
      </rect>
@@ -373,8 +379,8 @@
    <widget class="QLabel" name="label_5">
     <property name="geometry">
      <rect>
-      <x>940</x>
-      <y>135</y>
+      <x>1150</x>
+      <y>80</y>
       <width>181</width>
       <height>16</height>
      </rect>
@@ -393,8 +399,8 @@
    <widget class="QLabel" name="Temperatures">
     <property name="geometry">
      <rect>
-      <x>940</x>
-      <y>156</y>
+      <x>1150</x>
+      <y>100</y>
       <width>141</width>
       <height>20</height>
      </rect>
@@ -429,8 +435,8 @@
    <widget class="QLabel" name="label_6">
     <property name="geometry">
      <rect>
-      <x>1130</x>
-      <y>7</y>
+      <x>940</x>
+      <y>120</y>
       <width>141</width>
       <height>20</height>
      </rect>
@@ -476,12 +482,15 @@
       <pointsize>14</pointsize>
      </font>
     </property>
+    <property name="readOnly">
+     <bool>true</bool>
+    </property>
    </widget>
    <widget class="QLineEdit" name="lineRulonNumber">
     <property name="geometry">
      <rect>
-      <x>1130</x>
-      <y>30</y>
+      <x>940</x>
+      <y>143</y>
       <width>171</width>
       <height>31</height>
      </rect>
@@ -490,6 +499,9 @@
      <font>
       <pointsize>14</pointsize>
      </font>
+    </property>
+    <property name="readOnly">
+     <bool>true</bool>
     </property>
    </widget>
    <widget class="QLineEdit" name="lineThickness">
@@ -506,21 +518,30 @@
       <pointsize>14</pointsize>
      </font>
     </property>
+    <property name="readOnly">
+     <bool>true</bool>
+    </property>
    </widget>
    <widget class="QPushButton" name="pushButton">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
     <property name="geometry">
      <rect>
-      <x>1170</x>
-      <y>80</y>
-      <width>75</width>
-      <height>24</height>
+      <x>1190</x>
+      <y>0</y>
+      <width>171</width>
+      <height>41</height>
      </rect>
     </property>
     <property name="text">
-     <string>PushButton</string>
+     <string>Сменить пользователя</string>
     </property>
    </widget>
    <widget class="QPushButton" name="FilterButton_2">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
     <property name="geometry">
      <rect>
       <x>670</x>
@@ -531,6 +552,22 @@
     </property>
     <property name="text">
      <string>Справочник</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="chAll">
+    <property name="geometry">
+     <rect>
+      <x>1000</x>
+      <y>200</y>
+      <width>141</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Среднее по ширине</string>
+    </property>
+    <property name="checked">
+     <bool>true</bool>
     </property>
    </widget>
   </widget>

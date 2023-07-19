@@ -6,56 +6,17 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1033</width>
-    <height>838</height>
+    <width>1366</width>
+    <height>768</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Настройки</string>
   </property>
-  <widget class="QDoubleSpinBox" name="MinBox">
-   <property name="geometry">
-    <rect>
-     <x>60</x>
-     <y>30</y>
-     <width>291</width>
-     <height>211</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>72</pointsize>
-    </font>
-   </property>
-   <property name="decimals">
-    <number>1</number>
-   </property>
-   <property name="singleStep">
-    <double>0.100000000000000</double>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label">
-   <property name="geometry">
-    <rect>
-     <x>60</x>
-     <y>0</y>
-     <width>211</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>18</pointsize>
-    </font>
-   </property>
-   <property name="text">
-    <string>Минимум, мм</string>
-   </property>
-  </widget>
   <widget class="QPushButton" name="SaveButton">
    <property name="geometry">
     <rect>
-     <x>810</x>
+     <x>1100</x>
      <y>50</y>
      <width>181</width>
      <height>101</height>
@@ -65,91 +26,10 @@
     <string>Сохранить</string>
    </property>
   </widget>
-  <widget class="QDoubleSpinBox" name="MaxBox">
-   <property name="geometry">
-    <rect>
-     <x>420</x>
-     <y>30</y>
-     <width>291</width>
-     <height>211</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>72</pointsize>
-    </font>
-   </property>
-   <property name="decimals">
-    <number>1</number>
-   </property>
-   <property name="maximum">
-    <double>100.000000000000000</double>
-   </property>
-   <property name="singleStep">
-    <double>0.100000000000000</double>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_2">
-   <property name="geometry">
-    <rect>
-     <x>420</x>
-     <y>0</y>
-     <width>211</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>18</pointsize>
-    </font>
-   </property>
-   <property name="text">
-    <string>Максимум, мм</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_3">
-   <property name="geometry">
-    <rect>
-     <x>60</x>
-     <y>240</y>
-     <width>501</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>18</pointsize>
-    </font>
-   </property>
-   <property name="text">
-    <string>На графике последние (час)</string>
-   </property>
-  </widget>
-  <widget class="QDoubleSpinBox" name="HowManyHours">
-   <property name="geometry">
-    <rect>
-     <x>60</x>
-     <y>270</y>
-     <width>291</width>
-     <height>211</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>72</pointsize>
-    </font>
-   </property>
-   <property name="decimals">
-    <number>0</number>
-   </property>
-   <property name="singleStep">
-    <double>1.000000000000000</double>
-   </property>
-  </widget>
   <widget class="QPushButton" name="SaveButton_2">
    <property name="geometry">
     <rect>
-     <x>810</x>
+     <x>1100</x>
      <y>170</y>
      <width>181</width>
      <height>101</height>
@@ -159,128 +39,106 @@
     <string>Закрыть</string>
    </property>
   </widget>
-  <widget class="QDoubleSpinBox" name="MaxSpeed">
+  <widget class="QGroupBox" name="groupBox">
    <property name="geometry">
     <rect>
-     <x>420</x>
-     <y>510</y>
-     <width>291</width>
-     <height>211</height>
+     <x>30</x>
+     <y>20</y>
+     <width>311</width>
+     <height>191</height>
     </rect>
    </property>
-   <property name="font">
-    <font>
-     <pointsize>72</pointsize>
-    </font>
+   <property name="title">
+    <string>Не брать в расчет края рулона</string>
    </property>
-   <property name="decimals">
-    <number>1</number>
-   </property>
-   <property name="maximum">
-    <double>100.000000000000000</double>
-   </property>
-   <property name="singleStep">
-    <double>1.000000000000000</double>
-   </property>
+   <widget class="QSpinBox" name="cutBegin">
+    <property name="geometry">
+     <rect>
+      <x>150</x>
+      <y>50</y>
+      <width>141</width>
+      <height>41</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QSpinBox" name="cutEnd">
+    <property name="geometry">
+     <rect>
+      <x>150</x>
+      <y>120</y>
+      <width>141</width>
+      <height>41</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>70</y>
+      <width>101</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>От начала, м</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_2">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>140</y>
+      <width>81</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>С конца, м</string>
+    </property>
+   </widget>
   </widget>
-  <widget class="QDoubleSpinBox" name="MinSpeed">
+  <widget class="QGroupBox" name="groupBox_2">
    <property name="geometry">
     <rect>
-     <x>60</x>
-     <y>510</y>
-     <width>291</width>
-     <height>211</height>
+     <x>360</x>
+     <y>20</y>
+     <width>311</width>
+     <height>191</height>
     </rect>
    </property>
-   <property name="font">
-    <font>
-     <pointsize>72</pointsize>
-    </font>
+   <property name="title">
+    <string>Регистрировать толщину каждые</string>
    </property>
-   <property name="decimals">
-    <number>1</number>
-   </property>
-   <property name="singleStep">
-    <double>1.000000000000000</double>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_4">
-   <property name="geometry">
-    <rect>
-     <x>60</x>
-     <y>480</y>
-     <width>211</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>18</pointsize>
-    </font>
-   </property>
-   <property name="text">
-    <string>Минимум, м/min</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_5">
-   <property name="geometry">
-    <rect>
-     <x>420</x>
-     <y>480</y>
-     <width>211</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>18</pointsize>
-    </font>
-   </property>
-   <property name="text">
-    <string>Максимум, м/min</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_6">
-   <property name="geometry">
-    <rect>
-     <x>420</x>
-     <y>240</y>
-     <width>501</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>18</pointsize>
-    </font>
-   </property>
-   <property name="text">
-    <string>Средние толщины (мин)</string>
-   </property>
-  </widget>
-  <widget class="QDoubleSpinBox" name="AverageRowMin">
-   <property name="geometry">
-    <rect>
-     <x>420</x>
-     <y>270</y>
-     <width>291</width>
-     <height>211</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>72</pointsize>
-    </font>
-   </property>
-   <property name="decimals">
-    <number>0</number>
-   </property>
-   <property name="maximum">
-    <double>10.000000000000000</double>
-   </property>
-   <property name="singleStep">
-    <double>1.000000000000000</double>
-   </property>
+   <widget class="QSpinBox" name="IncReg">
+    <property name="geometry">
+     <rect>
+      <x>40</x>
+      <y>80</y>
+      <width>141</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="maximum">
+     <number>1000</number>
+    </property>
+    <property name="singleStep">
+     <number>100</number>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_3">
+    <property name="geometry">
+     <rect>
+      <x>40</x>
+      <y>60</y>
+      <width>211</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Интервал регистрации, м</string>
+    </property>
+   </widget>
   </widget>
  </widget>
  <resources/>

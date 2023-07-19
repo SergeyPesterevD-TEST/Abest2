@@ -72,9 +72,8 @@ Statistics::GetKurtosisAndAsymmetry(QVector <qint16> &v1, double &asymmetry_, do
     int size;
     size=v1.count();
 
-    //absVector(v1, size); // ???
-
     qint32 s1 = sumVector(v1, size);
+
     double Mx = arithmeticMean(s1, size);
 
     QVector <qint16> v2 = centralMoment(v1, size, Mx);

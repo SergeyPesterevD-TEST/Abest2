@@ -42,11 +42,13 @@ void NewRulonDialog::updateAll()
 
     // users
     // UsersComboBox
-    SQLConnection->SqlGetUsers(UsersList);
-    for (int i=0;i<UsersList.count();i++)
-    {
-        ui->UsersComboBox->addItem(UsersList[i].username,UsersList[i].key);
-    }
+//    SQLConnection->SqlGetUsers(UsersList);
+//    for (int i=0;i<UsersList.count();i++)
+//    {
+//        ui->UsersComboBox->addItem(UsersList[i].username,UsersList[i].key);
+//    }
+    ui->UsersComboBox->clear();
+    ui->UsersComboBox->addItem(Rulon.username);
 
     // other field
 
@@ -71,7 +73,7 @@ void NewRulonDialog::on_tableTypes_currentCellChanged(int currentRow, int curren
 
 void NewRulonDialog::on_buttonBox_accepted()
 {
-    Rulon.username=ui->UsersComboBox->currentText();
+    //Rulon.username=ui->UsersComboBox->currentText();
     Rulon.min=min;
     Rulon.nominal=nominal;
     Rulon.max=max;

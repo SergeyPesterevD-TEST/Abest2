@@ -11,12 +11,13 @@ TSetupForm::TSetupForm(QWidget *parent) :
 
     IniSettings *INIFile = new IniSettings;
 
-    ui->MinBox->setValue((double)INIFile->GetParam("Plot/Ymin")/10);
-    ui->MaxBox->setValue((double)INIFile->GetParam("Plot/Ymax")/10);
-    ui->MinSpeed->setValue((double)INIFile->GetParam("Plot/SYmin")/10);
-    ui->MaxSpeed->setValue((double)INIFile->GetParam("Plot/SYmax")/10);
-    ui->HowManyHours->setValue(INIFile->GetParam("Plot/Xhours"));
-    ui->AverageRowMin->setValue(INIFile->GetParam("Main/AverageRow"));
+    ui->cutBegin->setValue(INIFile->GetParam("Plot/cutBegin"));
+    ui->cutEnd->setValue(INIFile->GetParam("Plot/cutEnd"));
+    ui->IncReg->setValue(INIFile->GetParam("IncReg"));
+//    ui->MinSpeed->setValue((double)INIFile->GetParam("Plot/SYmin")/10);
+//    ui->MaxSpeed->setValue((double)INIFile->GetParam("Plot/SYmax")/10);
+//    ui->HowManyHours->setValue(INIFile->GetParam("Plot/Xhours"));
+//    ui->AverageRowMin->setValue(INIFile->GetParam("Main/AverageRow"));
     UpdateMinMax();
 
     delete(INIFile);
@@ -31,12 +32,13 @@ TSetupForm::~TSetupForm()
 void TSetupForm::on_SaveButton_clicked()
 {
     IniSettings *INIFile = new IniSettings;
-    INIFile->SetParam("Plot/Ymin",ui->MinBox->value()*10);
-    INIFile->SetParam("Plot/Ymax",ui->MaxBox->value()*10);
-    INIFile->SetParam("Plot/SYmin",ui->MinSpeed->value()*10);
-    INIFile->SetParam("Plot/SYmax",ui->MaxSpeed->value()*10);
-    INIFile->SetParam("Plot/Xhours",ui->HowManyHours->value());
-    INIFile->SetParam("Main/AverageRow",ui->AverageRowMin->value());
+    INIFile->SetParam("Plot/cutBegin",ui->cutBegin->value());
+    INIFile->SetParam("Plot/cutEnd",ui->cutEnd->value());
+    INIFile->SetParam("IncReg",ui->IncReg->value());
+//    INIFile->SetParam("Plot/SYmin",ui->MinSpeed->value()*10);
+//    INIFile->SetParam("Plot/SYmax",ui->MaxSpeed->value()*10);
+//    INIFile->SetParam("Plot/Xhours",ui->HowManyHours->value());
+//    INIFile->SetParam("Main/AverageRow",ui->AverageRowMin->value());
 
     delete(INIFile);
 
@@ -45,8 +47,8 @@ void TSetupForm::on_SaveButton_clicked()
 
 void TSetupForm::UpdateMinMax()
 {
-ui->MaxBox->setMinimum(ui->MinBox->value()+0.1);
-ui->MinBox->setMaximum(ui->MaxBox->value()-0.1);
+//ui->MaxBox->setMinimum(ui->MinBox->value()+0.1);
+//ui->MinBox->setMaximum(ui->MaxBox->value()-0.1);
 }
 
 void TSetupForm::on_MinBox_valueChanged(double arg1)

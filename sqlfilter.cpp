@@ -21,12 +21,12 @@ void SQLFilter::UpdateTable()
     //
     // types of materials
 
-    ui->tableTypes->setColumnCount(11);
+    ui->tableTypes->setColumnCount(13);
     ui->tableTypes->setColumnWidth(0,30);
-    for (int i=1;i<11;i++) {ui->tableTypes->setColumnWidth(i,60);}
+    for (int i=1;i<13;i++) {ui->tableTypes->setColumnWidth(i,60);}
     for (int i=1;i<6;i++) {ui->tableTypes->setColumnWidth(i,110);}
     ui->tableTypes->setShowGrid(true);
-    ui->tableTypes->setHorizontalHeaderLabels({"#","Дата","Пользователь","Рулон","Тип","Длина","Т1, мм","Т2, мм","Т3, мм","Т4, мм","Т5, мм"});
+    ui->tableTypes->setHorizontalHeaderLabels({"#","Дата","Пользователь","Рулон","Тип","Длина","Т1, мм","Т2, мм","Т3, мм","Т4, мм","Т5, мм","Tav,mm","STDEV"});
 
     IniSettings *INIFile =new IniSettings;
     QString ServerName=INIFile->GetParamStr("SQL/ServerName");
@@ -100,6 +100,8 @@ void SQLFilter::UpdateTable()
         ui->tableTypes->setItem(row, 8, new QTableWidgetItem(QString::number((float)Qry.value("av3").toFloat()/1000000,'f',3)));
         ui->tableTypes->setItem(row, 9, new QTableWidgetItem(QString::number((float)Qry.value("av4").toFloat()/1000000,'f',3)));
         ui->tableTypes->setItem(row, 10, new QTableWidgetItem(QString::number((float)Qry.value("av5").toFloat()/1000000,'f',3)));
+        ui->tableTypes->setItem(row, 11, new QTableWidgetItem(QString::number((float)Qry.value("av").toFloat()/1000000,'f',3)));
+        ui->tableTypes->setItem(row, 12, new QTableWidgetItem(QString::number((float)Qry.value("stdev").toFloat()/1000000,'f',3)));
         row++;
         }
     }
@@ -131,11 +133,13 @@ void SQLFilter::on_pushButton_3_clicked()
 {
     qDebug() << "RulonDI=" << RulonId;
     if (RulonId<=0) return;
+    if (ui->tableTypes->item(GlobalcurrentRow,5)->text().toInt()<100) return;
 
     SqlModule *SQLConnection=new SqlModule;
+    IniSettings *INIFile =new IniSettings;
 
     SQLConnection->SqlCalculateStatistics(RulonId);
-    SQLConnection->FormXlsSingleReport(RulonId, 200);
+    SQLConnection->FormXlsSingleReport(RulonId, INIFile->GetParam("IncReg"));
 
     QProcess *process = new QProcess(this);
     QString file = "C:\\Program Files (x86)\\Microsoft Office\\Office12\\excel.exe";
@@ -143,6 +147,7 @@ void SQLFilter::on_pushButton_3_clicked()
     arguments << "c:\\xls\\output2.xlsx";
     process->start(file, arguments);
 
+    delete(INIFile);
     SQLConnection->deleteLater();
     UpdateTable();
 }
@@ -181,6 +186,15 @@ void SQLFilter::on_pushButton_4_clicked()
    SQLConnection->DeleteSQL("Rulons","RulonKey="+ui->tableTypes->item(GlobalcurrentRow,0)->text());
 
    SQLConnection->deleteLater();
+   UpdateTable();
+}
+
+
+void SQLFilter::on_pushButton_5_clicked()
+{
+    //
+
+   ui->filDate->setText(QDateTime::currentDateTime().toString("dd/MM/yyyy"));
    UpdateTable();
 }
 
