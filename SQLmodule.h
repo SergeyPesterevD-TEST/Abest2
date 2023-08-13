@@ -33,7 +33,7 @@ public:
     struct CartonTypes
     {
     QString name;
-    int key, target, max, min, offset;
+    int key, target, max, min, offset, interval;
     };
 
     struct UsersTypes
@@ -61,7 +61,7 @@ public:
     int SqlAddNewRulon(CurrentRulon &rulon);
     int SqlCalculateStatistics(int RulonId);
     void FormXlsReport(int RulonId, QString FilterString);
-    void FormXlsSingleReport(int RulonId, int delta);
+    void FormXlsSingleReport(int RulonId, float delta);
     float CutFloat(float in);
 
     int UpdateSQL(QString table, QString where, QStringList columns, QStringList values);

@@ -19,16 +19,16 @@ ReferenceDialog::UpdateAll()
     SqlModule *SQLConnection=new SqlModule;
     SQLConnection->SqlGetTypes(TypesList);
 
-    ui->tableTypes->setColumnCount(6);
+    ui->tableTypes->setColumnCount(7);
 
     ui->tableTypes->setColumnWidth(0,30);
-    for (int i=1;i<6;i++) {ui->tableTypes->setColumnWidth(i,130);}
+    for (int i=1;i<7;i++) {ui->tableTypes->setColumnWidth(i,130);}
     ui->tableTypes->setColumnWidth(1,250);
 
     ui->tableTypes->setRowCount(TypesList.count());
     ui->tableTypes->setShowGrid(true);
 
-    ui->tableTypes->setHorizontalHeaderLabels({"#","Тип картона","Мин, мм","Номинал, мм","Макс, мм","Смещение, мм"});
+    ui->tableTypes->setHorizontalHeaderLabels({"#","Тип картона","Мин, мм","Номинал, мм","Макс, мм","Смещение, мм","Интервал, м"});
 
     for (int i=0;i<TypesList.count();i++)
     {
@@ -38,6 +38,8 @@ ReferenceDialog::UpdateAll()
         ui->tableTypes->setItem(i, 3, new QTableWidgetItem(QString::number((float)TypesList[i].target/100,'f',2)));
         ui->tableTypes->setItem(i, 4, new QTableWidgetItem(QString::number((float)TypesList[i].max/100,'f',2)));
         ui->tableTypes->setItem(i, 5, new QTableWidgetItem(QString::number((float)TypesList[i].offset/100,'f',2)));
+        ui->tableTypes->setItem(i, 6, new QTableWidgetItem(QString::number((float)TypesList[i].interval/100,'f',2)));
+
     }
 
     // users
@@ -129,6 +131,8 @@ void ReferenceDialog::on_tableTypes_currentCellChanged(int currentRow, int curre
     ui->ToleranceUp->setValue(ui->tableTypes->item(currentRow,4)->text().toFloat());
     ui->ToleranceDown->setValue(ui->tableTypes->item(currentRow,2)->text().toFloat());
     ui->Offset->setValue(ui->tableTypes->item(currentRow,5)->text().toFloat());
+    ui->interval->setValue(ui->tableTypes->item(currentRow,6)->text().toFloat());
+
     GlobalcurrentRow2=currentRow;
 }
 
@@ -138,11 +142,12 @@ void ReferenceDialog::on_pushButton_4_clicked()
     // edit
     SqlModule *SQLConnection=new SqlModule;
     SQLConnection->UpdateSQL("Products", "ProductKey="+ui->tableTypes->item(GlobalcurrentRow2,0)->text(),
-                             {"ProductName", "NominalThickness", "ToleranceUp", "ToleranceDown", "Offset"},
+                             {"ProductName", "NominalThickness", "ToleranceUp", "ToleranceDown", "Offset", "Interval"},
                              {ui->lineProduct->text(), QString::number(ui->NominalThickness->value()*100),
                              QString::number(ui->ToleranceUp->value()*100),
                              QString::number(ui->ToleranceDown->value()*100),
-                             QString::number(ui->Offset->value()*100)});
+                             QString::number(ui->Offset->value()*100),
+                             QString::number(ui->interval->value()*100)});
 
     SQLConnection->deleteLater();
     UpdateAll();
@@ -153,11 +158,12 @@ void ReferenceDialog::on_pushButton_6_clicked()
 {
     SqlModule *SQLConnection=new SqlModule;
     SQLConnection->InsertSQL("Products",
-                             {"ProductName", "NominalThickness", "ToleranceUp", "ToleranceDown", "Offset"},
+                             {"ProductName", "NominalThickness", "ToleranceUp", "ToleranceDown", "Offset", "Interval"},
                              {ui->lineProduct->text(), QString::number(ui->NominalThickness->value()*100),
                               QString::number(ui->ToleranceUp->value()*100),
                               QString::number(ui->ToleranceDown->value()*100),
-                              QString::number(ui->Offset->value()*100)});
+                              QString::number(ui->Offset->value()*100),
+                              QString::number(ui->interval->value()*100)});
 
     SQLConnection->deleteLater();
     UpdateAll();
