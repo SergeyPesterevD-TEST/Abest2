@@ -20,7 +20,7 @@ RFDevice::RF603Device *dev = new RFDevice::RF603Device();
 RFDevice::RFCOMHELLOANSWER hello;
 BOOL bConn = FALSE;
 
-//qDebug() << "SENSORS Opening " << INIFile->GetParamStr("Main/ComPortNumber") << INIFile->GetParamStr("Main/SensorSpeed") << "...";
+qDebug() << "SENSORS Opening " << INIFile->GetParamStr("Main/ComPortNumber") << INIFile->GetParamStr("Main/SensorSpeed") << "...";
 
 QByteArray temp_data;
 QString temp_str;

@@ -12,19 +12,21 @@ MainWindow::MainWindow(QWidget *parent)
     NewRulonForm = new NewRulonDialog;
     ReferenceDialogForm = new ReferenceDialog;
     UserDialogForm = new UserDialog;
+    NoWatchDog=false;
 
     // MODBUS
-    Temps = new ModBusMaster(this);
-    Temps->ConnectModbus(INIFile.GetParamStr("Modbus/Temps/host"));
-    LightPost = new ModBusMaster(this);
-    LightPost->ConnectModbus(INIFile.GetParamStr("Modbus/LightPost/host"));
-    //
+    // temperature
+    if (INIFile.GetParam("NoPort")!=1)
+        {
+        LightPost = new ModBusMaster(this);
+        LightPost->ConnectModbus(INIFile.GetParamStr("Modbus/LightPost/host"));
 
+        Temps = new ModBusMaster(this);
+        Temps->ConnectModbus(INIFile.GetParamStr("Modbus/Temps/host"));
+        }
     MainCounter=0;
-
     beep=false;
     lampstatus=-1;
-
     ui->StopBut->setHidden(true);
 
     makePlot();
@@ -38,14 +40,14 @@ MainWindow::MainWindow(QWidget *parent)
     lastLAMP=-1;
     //
 
-    //
+    // table of sensor-place and sensors
     SensorTable.clear();
     for (int i=0; i<INIFile.GetParam("Main/NumberOfPairs")*2; i++)
     {
      SensorTable.push_back(INIFile.GetParam("Sensors/"+QString::number(i)+"/Address"));
     }
     for (int i=0; i<SensorTable.count(); i++)
-    qDebug() << "table " << i << "sensor =" << SensorTable[i];
+    qDebug() << "SENSOR-PLACE table " << i << "sensor =" << SensorTable[i];
     //
 
     ui->SensorValues->setColumnCount(1+INIFile.GetParam("Main/NumberOfPairs"));
@@ -58,22 +60,55 @@ MainWindow::MainWindow(QWidget *parent)
     for (int i=0;i<2+INIFile.GetParam("Main/NumberOfPairs");i++) ui->SensorValues->setColumnWidth(i,INIFile.GetParam("Interface/ColumnWidth"));
     for (int i=0;i<5;i++) ui->SensorValues->setRowHeight(i,INIFile.GetParam("Interface/RowHeight"));
 
-    int err;
-    SetApiMode(OWENIO_API_OLD);
-    err=OpenPort(1 - 1, spd_9600, prty_NONE, databits_8, stopbit_1, RS485CONV_AUTO);
-    qDebug() << "OWEN Open" << err;
+    qDebug() << "NO LIR ";
+    if (INIFile.GetParam("NoPort")!=1)
+        {
+        // LIR SENSOR
+        int err;
+        SetApiMode(OWENIO_API_OLD);
+        err=OpenPort(1 - 1, spd_9600, prty_NONE, databits_8, stopbit_1, RS485CONV_AUTO);
+        qDebug() << "OWEN Open" << err;
 
-    timer2 = new QTimer;
-    connect(timer2, SIGNAL(timeout()), this, SLOT(slotTimerAlarm2()));
-    timer2->start(500);
+        timer2 = new QTimer;
+        connect(timer2, SIGNAL(timeout()), this, SLOT(slotTimerAlarm2()));  // OWEN && MODBUS
+        timer2->start(500);
+        }
 
     lamp(1, false);
     UserDialogForm->UpdateAll();
     UserDialogForm->showFullScreen();
+
+
+    if (INIFile.GetParam("NoPort")!=1)
+        {    // RIFTEK to another Thread
+        //RestartPower();
+        //Sleep(500);
+        connect(&RFThreadThread, &QThread::started, &RFMeasures, &RFThread::run);
+        connect(&RFMeasures, &RFThread::finished, &RFThreadThread, &QThread::terminate);
+        connect(&RFMeasures, &RFThread::sendMessage,this,&MainWindow::MyGetMessage);
+        connect(&RFMeasures, &RFThread::watchDog,this,&MainWindow::RestartPower);
+        RFMeasures.moveToThread(&RFThreadThread);
+        RFMeasures.setRunning(true);
+        RFThreadThread.start();
+        }
+
+    if (INIFile.GetParam("NoPort")==1)
+        {
+        qDebug() << "NOPORT CONFIG ";
+        timer3 = new QTimer;
+        connect(timer3, SIGNAL(timeout()), this, SLOT(slotTimerAlarm3()));
+        timer3->start(INIFile.GetParam("Main/TimerUpdate"));
+
+        ui->pushButtonStart->setVisible(false);
+        ui->LIRedit->setVisible(false);
+        ui->label_3->setVisible(false);        
+        }
 }
 
 MainWindow::~MainWindow()
 {
+    RFMeasures.setRunning(false);
+    Sleep(3000);
     ClosePort();
     delete ui;
 }
@@ -141,12 +176,8 @@ void MainWindow::makePlot()
         break;
     }
 
-    //ui->customPlot->xAxis->setLabel("Время");
-
     ui->customPlot->yAxis->setRange((double)INIFile.GetParam("Plot/Ymin")/10, (double)INIFile.GetParam("Plot/Ymax")/10);
-
     ui->customPlot->replot();
-
 }
 
 void MainWindow::on_pushButtonStart_clicked()
@@ -160,10 +191,12 @@ void MainWindow::on_pushButtonStart_clicked()
     ui->pushButtonStart->setHidden(true);
     ui->StopBut->setHidden(false);
     FilterCount=0;
+
     timer = new QTimer;
     // основной поток по работе с РИФТЭК
-    connect(timer, SIGNAL(timeout()), this, SLOT(slotTimerAlarm()));
-    timer->start(INIFile.GetParam("Main/Timer"));
+    //connect(timer, SIGNAL(timeout()), this, SLOT(slotTimerAlarm()));
+    //timer->start(INIFile.GetParam("Main/Timer"));
+
     timer3 = new QTimer;
     // прорисовка графика медленная
     connect(timer3, SIGNAL(timeout()), this, SLOT(slotTimerAlarm3()));
@@ -197,7 +230,7 @@ void MainWindow::RepaintRiftek(QVector<SqlModule::Top100> *Top100Measures)
     //    timeTicker->setDateTimeFormat("hh:mm");
     //    ui->customPlot->xAxis->setTicker(timeTicker);
 
-    if (Top100Measures->count()<=5) return;
+    if (Top100Measures->count()<=5) { ui->customPlot->replot();return;}
 
     float tBegin,tEnd;
     OneMeasure=Top100Measures->data()[0];
@@ -221,6 +254,7 @@ void MainWindow::RepaintRiftek(QVector<SqlModule::Top100> *Top100Measures)
     {
     OneMeasure=Top100Measures->data()[j];
     float Average=0;
+    int AverageMember=0;
 
     for (int i=0;i<INIFile.GetParam("Main/NumberOfPairs");i++)
     {
@@ -231,17 +265,29 @@ void MainWindow::RepaintRiftek(QVector<SqlModule::Top100> *Top100Measures)
             (i==3 && ui->ch04->isChecked())     ||
             (i==4 && ui->ch05->isChecked()))
         {
+        AverageMember++;
         Average+=(double)OneMeasure.data.data()[i]/1000;
         ui->customPlot->graph(i)->addData(OneMeasure.LIR,(double)OneMeasure.data.data()[i]/1000);
         }
     }
 
-    if (ui->chAll->isChecked())  // Average
+    if (ui->chAll->isChecked() && AverageMember!=0)  // Average
     {
-    ui->customPlot->graph(5)->addData(OneMeasure.LIR,Average/5);}
+    ui->customPlot->graph(5)->addData(OneMeasure.LIR,Average/AverageMember);}
     }
 
     ui->customPlot->replot();
+}
+
+int MainWindow::IsChannelOn(int channel)
+{
+    int Flag=0;
+    if (ui->ch01->isChecked() && channel==0) {Flag=1; }
+    if (ui->ch02->isChecked() && channel==1) {Flag=1; }
+    if (ui->ch03->isChecked() && channel==2) {Flag=1; }
+    if (ui->ch04->isChecked() && channel==3) {Flag=1; }
+    if (ui->ch05->isChecked() && channel==4) {Flag=1; }
+    return Flag;
 }
 
 void MainWindow::UpdateRiftek()  // one measure
@@ -266,10 +312,35 @@ void MainWindow::on_ThreadBut_clicked()
 {
 }
 
-
-void MainWindow::UpdateRF(QVector<int> OutputMeasures)
+void MainWindow::MyGetMessage(QVector<int> OutputMeasures)
 {
-//    RepaintRiftek(&OutputMeasures);
+   Measures=OutputMeasures;
+//   QString str;
+//   for (int i=0;i<OutputMeasures.count();i++)
+//    {
+//    str=str+" "+QString::number(i)+"="+QString::number(OutputMeasures[i]);
+//}
+//   ui->listWidget->addItem(str);
+//   if (ui->listWidget->count()>100) ui->listWidget->takeItem(0);
+//   ui->listWidget->scrollToBottom();
+   slotTimerAlarm();
+}
+
+void MainWindow::RestartPower()
+{
+//   //
+   if (NoWatchDog) return;
+   NoWatchDog=true;
+   qDebug() << "thread watchdog";
+   LightPost->WriteCoils(7,true);
+   Delay(1000);
+   LightPost->WriteCoils(7,true);
+   Delay(10000);
+   LightPost->WriteCoils(7,false);
+   Delay(1000);
+   LightPost->WriteCoils(7,false);
+   Delay(10000);
+   NoWatchDog=false;
 }
 
 void MainWindow::on_StopBut_clicked()
@@ -287,7 +358,7 @@ void MainWindow::on_StopBut_clicked()
     ui->StopBut->setHidden(true);
 }
 
-void MainWindow::slotTimerAlarm2()    // забираем из базы большой архив
+void MainWindow::slotTimerAlarm2()    // OWEN && MODBUS
 {
 
     // OWEN
@@ -304,29 +375,15 @@ void MainWindow::slotTimerAlarm2()    // забираем из базы боль
     }
     // !OWEN
 
-    Temps->ModbusReadInputRegisters(1);
-    ui->Temperatures->setText(
-        QString::number(Temps->DIVector[0]/100)+" C,"+
-        QString::number(Temps->DIVector[1]/100)+" C,"+
-        QString::number(Temps->DIVector[2]/100)+" C,"+
-        QString::number(Temps->DIVector[3]/100)+" C"
-        );
-    //return;
+//    Temps->ModbusReadInputRegisters(1);
+//    ui->Temperatures->setText(
+//        QString::number(Temps->DIVector[0]/100)+" C,"+
+//        QString::number(Temps->DIVector[1]/100)+" C,"+
+//        QString::number(Temps->DIVector[2]/100)+" C,"+
+//        QString::number(Temps->DIVector[3]/100)+" C"
+//        );
 
-    if (INIFile.GetParam("FilterSQL/Enabled")==1)
-       {
-
-        if (INIFile.GetParam("FilterSQL/Do")==1)
-            {
-            INIFile.SetParam("FilterSQL/Do",0);
-            SQLConnection->SqlGetLast(-1, 0, &FilterMeasures); // get last points
-            RepaintRiftek(&FilterMeasures);
-            }
-      } else
-            {
-            }
-
-      if (UserDialogForm->CurrentUser=="")
+    if (UserDialogForm->CurrentUser=="")
             {
             ui->pushButtonStart->setEnabled(false);
             ui->StopBut->setEnabled(false);
@@ -347,6 +404,10 @@ void MainWindow::slotTimerAlarm2()    // забираем из базы боль
                 ui->SettingsBut->setEnabled(false);
             }
             NewRulonForm->Rulon.username=UserDialogForm->CurrentUser;
+
+            ui->lineProductType->setText(NewRulonForm->Rulon.rulontype);
+            ui->lineRulonNumber->setText(NewRulonForm->Rulon.rulonnumber);
+            ui->lineThickness->setText(QString::number(NewRulonForm->Rulon.nominal,'f',2));
 }
 
 void MainWindow::slotTimerAlarm()   // основной поток по работе с РИФТЭК
@@ -360,25 +421,7 @@ void MainWindow::slotTimerAlarm()   // основной поток по рабо
     ui->lineThickness->setText(QString::number(NewRulonForm->Rulon.nominal,'f',2));
     ThickOffset=NewRulonForm->Rulon.offset;
 
-    //lamp(1,false);
-
-    if (INIFile.GetParam("NoPort")==0)
-    {
-    // working with hardware RIFTEK
-    RFSensors.RF603_CheckSensors(&INIFile, &Measures);
-    } else
-    {
-    // when working without sensors. just to check algorhytms.
-    Measures.clear();
-    for (int i=0;i<=INIFile.GetParam("Main/NumberOfPairs")+1;i++)
-    {
-        Measures.push_back(4100+1000*rand()/RAND_MAX);
-        Measures.push_back(4100+1000*rand()/RAND_MAX);
-    }
-    }
-    QApplication::processEvents();
-
-    CurrentData.clear();
+     CurrentData.clear();
     // Определяем толщину из показаний датчиков
     for (int i=0; i<INIFile.GetParam("Main/NumberOfPairs"); i++)
     {
@@ -388,13 +431,19 @@ void MainWindow::slotTimerAlarm()   // основной поток по рабо
         {     ThickValue=0;    }
 
     if (NewRulonForm->RulonId<=0) { ThickOffset=0; }
-    qDebug() << "Канал " << i << SensorTable[i] << SensorTable[i+INIFile.GetParam("Main/NumberOfPairs")]
-             << INIFile.GetCalib(i,"Base")
-             << Measures.data()[SensorTable[i]] << Measures.data()[SensorTable[i+INIFile.GetParam("Main/NumberOfPairs")]] << "ThickValue =" << ThickValue << "offset" << ThickOffset;
+//    qDebug() << "Канал " << i << SensorTable[i] << SensorTable[i+INIFile.GetParam("Main/NumberOfPairs")]
+//             << INIFile.GetCalib(i,"Base")
+//             << Measures.data()[SensorTable[i]] << Measures.data()[SensorTable[i+INIFile.GetParam("Main/NumberOfPairs")]] << "ThickValue =" << ThickValue << "offset" << ThickOffset;
 
     if (ThickValue!=0) {ThickValue = ThickValue + ThickOffset*1000;}
-    CurrentData.push_back(ThickValue);
 
+    if (IsChannelOn(i)==1)
+        {
+        CurrentData.push_back(ThickValue);
+        } else
+        {
+        CurrentData.push_back(-1);
+        }
     }
 
     SqlModule::Top100 OnePacket;
@@ -409,18 +458,19 @@ void MainWindow::slotTimerAlarm()   // основной поток по рабо
        { LastMeasures.pop_front();  }
 
     // прогоняем фильтр по LastMeasures, отображаем на экране и кладем в базу каждый n-ный.
+    int n=40;
     CurrentData.clear();
     FilterRiftek(&LastMeasures,&CurrentData);
-
     // в CurrentData лежит то, что нужно показать
     RefillTableRiftek2(&CurrentData,&Measures);
 
     MainCounter++;
 
-    if (MainCounter>1)
-    {    
+    if (MainCounter>n)
+    {
     qDebug() << "SQL insert";
-        SQLConnection->SqlPutMeasure2(NewRulonForm->RulonId,&CurrentData, LL, 0);
+    qDebug() << "RulonID " << NewRulonForm->RulonId;
+    SQLConnection->SqlPutMeasure2(NewRulonForm->RulonId,&CurrentData, LL, 0);
     lampstatus=lastLAMP;
     MainCounter=0;
     }
@@ -428,18 +478,139 @@ void MainWindow::slotTimerAlarm()   // основной поток по рабо
 
 void MainWindow::slotTimerAlarm3()  // прорисовка графика медленная
 {
-// to add get all the rulon
+if (INIFile.GetParam("NoPort")==1)
+    {
+    QVector <QMap <QString,QString>> ResultVector;
+    QMap <QString,QString> Record;
+    if (!SQLConnection->DoSELECT(ResultVector, "SELECT TOP (1) * FROM [DTdatabase].[dbo].[Rulons] ORDER BY rulonkey DESC","SQL")) return;
+    Record=ResultVector[0];
+    int RulonKeyNoPort=Record["rulonkey"].toInt();
+
+    if (!SQLConnection->DoSELECT(ResultVector, "SELECT * FROM [DTdatabase].[dbo].[Rulons] WHERE rulonkey="+QString::number(RulonKeyNoPort),"SQL")) return;
+    Record=ResultVector[0];
+    int minY,maxY;
+    QString productype;
+
+    minY=Record["min"].toInt();
+    maxY=Record["max"].toInt();
+
+    ui->lineProductType->setText(Record["product"]);
+    ui->lineRulonNumber->setText(Record["rulonnumber"]);
+    ui->lineThickness->setText(QString::number(Record["nominal"].toFloat()/1000,'f',2));
+
+    SQLConnection->SqlGetRulon(Record["rulonkey"].toInt(), &Top100Measures);
+    RepaintRiftek2(&Top100Measures, (float)minY/1000, (float)maxY/1000);
+
+    if (!SQLConnection->DoSELECT(ResultVector, "SELECT TOP (1) * FROM Measures WHERE rulonkey="+QString::number(RulonKeyNoPort)+" ORDER BY MeasureKey DESC","SQL")) return;
+    Record=ResultVector[0];
+
+    for (int i=0;i<INIFile.GetParam("Main/NumberOfPairs");i++)
+        {
+        qDebug() << "NOPORT" << "c"+QString::number(i+1) << Record["c"+QString::number(i+1)].toFloat()/1000;
+
+        if (IsChannelOn(i))
+            {
+            ui->SensorValues->setItem(3, 5-i,
+                                  new QTableWidgetItem(
+                                      QString::number(Record["c"+QString::number(i+1)].toFloat()/1000,'f',INIFile.GetParam("Main/Digits"))));
+            }
+            else
+                {
+                ui->SensorValues->setItem(3, 5-i,
+                                      new QTableWidgetItem("-"));
+                }
+        ui->SensorValues->item(3,5-i)->setBackground(GetColorForChannel(i));
+        }
+
+    return;
+    }
+
     qDebug() << "RulonID " << NewRulonForm->RulonId;
-    if (NewRulonForm->RulonId==-1) return;
+    if (NewRulonForm->RulonId==-1)
+    {
+    // cleaning
+    for (int i=0;i<8;i++)
+    {
+        ui->customPlot->graph(i)->data()->clear();
+    }
+    return;
+    }
 
     SQLConnection->SqlGetRulon(NewRulonForm->RulonId, &Top100Measures); // get last points
     //SQLConnection->SqlGetRulon(10062, &Top100Measures); // get last points
 
-    qDebug() << "TESTGRAPH";
+    qDebug() << "TESTGRAPH " << NewRulonForm->RulonId;
     RepaintRiftek(&Top100Measures);
 }
 
+void MainWindow::Delay(int msec)
+{
+
+    QTime dieTime= QTime::currentTime().addMSecs(msec);
+    while (QTime::currentTime() < dieTime)
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+}
+
+void MainWindow::RepaintRiftek2(QVector<SqlModule::Top100> *Top100Measures, float minY, float maxY)
+{
+    SqlModule::Top100 OneMeasure;
+
+    // cleaning
+    for (int i=0;i<8;i++)
+    {
+    ui->customPlot->graph(i)->data()->clear();
+    }
+
+    if (Top100Measures->count()<=5) return;
+
+    float tBegin,tEnd;
+    OneMeasure=Top100Measures->data()[0];
+    tBegin=OneMeasure.LIR;
+    OneMeasure=Top100Measures->data()[Top100Measures->count()-1];
+    tEnd=OneMeasure.LIR;
+    ui->customPlot->xAxis->setRange(tBegin, tEnd);
+    ui->customPlot->yAxis->setRange(minY-0.1, maxY+0.1);
+
+    qDebug() << "GRAPH tBegin" << tBegin;
+    qDebug() << "GRAPH tEnd" << tEnd;
+
+    // max and min
+    ui->customPlot->graph(6)->addData(tBegin,maxY);
+    ui->customPlot->graph(6)->addData(tEnd,maxY);
+    ui->customPlot->graph(7)->addData(tBegin,minY);
+    ui->customPlot->graph(7)->addData(tEnd,minY);
+    //
+
+    for (int j=0;j<Top100Measures->count();j++)
+    {
+    OneMeasure=Top100Measures->data()[j];
+    float Average=0;
+    int AverageMember=0;
+
+    for (int i=0;i<5;i++)
+    {
+        if (OneMeasure.data.data()[i]>0 &&
+            ((i==0 && ui->ch01->isChecked())     ||
+             (i==1 && ui->ch02->isChecked())     ||
+             (i==2 && ui->ch03->isChecked())     ||
+             (i==3 && ui->ch04->isChecked())     ||
+             (i==4 && ui->ch05->isChecked())))
+        {
+        AverageMember++;
+        Average+=(double)OneMeasure.data.data()[i]/1000;
+        ui->customPlot->graph(i)->addData(OneMeasure.LIR,(double)OneMeasure.data.data()[i]/1000);
+        }
+    }
+
+    if (ui->chAll->isChecked() && AverageMember!=0)  // Average
+        ui->customPlot->graph(5)->addData(OneMeasure.LIR,Average/AverageMember);}
+
+
+    ui->customPlot->replot();
+}
+
 void MainWindow::FilterRiftek(QVector<SqlModule::Top100> *Top100Measures, QVector<int> *CurrentData)
+// taken average in the point window
 {
     int CountNotZero;
     double Average;
@@ -447,6 +618,11 @@ void MainWindow::FilterRiftek(QVector<SqlModule::Top100> *Top100Measures, QVecto
     CurrentData->clear();
     for (int ch=0;ch<INIFile.GetParam("Main/NumberOfPairs");ch++)
         {
+        if (IsChannelOn(ch)!=1)
+            {
+            CurrentData->push_back(-1);
+            continue;
+            }
         Average=0; CountNotZero=0;
         for (int j=0;j<Top100Measures->count();j++)
                 {
@@ -457,10 +633,10 @@ void MainWindow::FilterRiftek(QVector<SqlModule::Top100> *Top100Measures, QVecto
                     CountNotZero++;
                     }
                 }
-            if (CountNotZero!=0)
-                {
-                Average=Average/CountNotZero;
-                } else Average=0;
+        if (CountNotZero!=0)
+            {
+            Average=Average/CountNotZero;
+            } else Average=0;
         CurrentData->push_back(Average);
         }
 }
@@ -544,18 +720,21 @@ flag=FALSE;
 
 for (int i=0;i<INIFile.GetParam("Main/NumberOfPairs");i++)
    {
+    if (CurrentData->data()[i]==-1 || IsChannelOn(i)!=1)
+    {
+        ui->SensorValues->setItem(3, INIFile.GetParam("Main/NumberOfPairs")-i,
+                                  new QTableWidgetItem("-"));
+        continue;
+    }
     if (Measures->data()[SensorTable[i]]==0 || Measures->data()[SensorTable[i+INIFile.GetParam("Main/NumberOfPairs")]]==0)
     {
-//    ui->SensorValues->setItem(3, INIFile.GetParam("Main/NumberOfPairs")-i, new QTableWidgetItem(QString::number(0,'f',INIFile.GetParam("Main/Digits"))));
       ui->SensorValues->setItem(3, INIFile.GetParam("Main/NumberOfPairs")-i,
                                   new QTableWidgetItem("["+QString::number((double)CurrentData->data()[i]/INIFile.GetParam("Plot/Scale"),'f',INIFile.GetParam("Main/Digits"))+"]"));
-
     ui->SensorValues->item(3,INIFile.GetParam("Main/NumberOfPairs")-i)->setBackground(GetColorForChannel(i));
     flag=TRUE;
     }
     else
     {
-//    qDebug() << "AF" << i << (double)CurrentData->data()[i];
         ui->SensorValues->setItem(3, INIFile.GetParam("Main/NumberOfPairs")-i,
         new QTableWidgetItem(QString::number((double)CurrentData->data()[i]/INIFile.GetParam("Plot/Scale"),'f',INIFile.GetParam("Main/Digits"))));
         ui->SensorValues->item(3,INIFile.GetParam("Main/NumberOfPairs")-i)->setBackground(GetColorForChannel(i));
@@ -611,6 +790,7 @@ void MainWindow::on_ch5_stateChanged(int arg1)
 
 void MainWindow::lamp(int i, bool beep)
 {
+    if (INIFile.GetParam("NoPort")==1) return;
 /*
  -1 NOTHING
  0 green
@@ -625,7 +805,7 @@ void MainWindow::lamp(int i, bool beep)
             }
             if (beep) { status+=8; }
 
-LightPost->WriteMultipleCoils(0,status,4);
+//LightPost->WriteMultipleCoils(0,status,4);
 }
 
 void MainWindow::on_pushButton_clicked()   //reset lir

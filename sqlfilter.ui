@@ -23,14 +23,14 @@
     </rect>
    </property>
    <property name="text">
-    <string>Показать все</string>
+    <string>EXCEL Показать все</string>
    </property>
   </widget>
   <widget class="QPushButton" name="pushButton_2">
    <property name="geometry">
     <rect>
-     <x>1150</x>
-     <y>290</y>
+     <x>1149</x>
+     <y>340</y>
      <width>191</width>
      <height>51</height>
     </rect>
@@ -73,7 +73,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>Показать выбранный</string>
+    <string>EXCEL Показать выбранный</string>
    </property>
   </widget>
   <widget class="QGroupBox" name="groupBox">
@@ -201,13 +201,26 @@
    <property name="geometry">
     <rect>
      <x>1150</x>
-     <y>180</y>
+     <y>260</y>
      <width>191</width>
      <height>51</height>
     </rect>
    </property>
    <property name="text">
     <string>Удалить</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="ChartButton">
+   <property name="geometry">
+    <rect>
+     <x>1150</x>
+     <y>150</y>
+     <width>191</width>
+     <height>51</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>График</string>
    </property>
   </widget>
  </widget>

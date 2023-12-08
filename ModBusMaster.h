@@ -69,7 +69,7 @@ private:
     QModbusClient *modbusDevice = nullptr;
     static const int m_NumberOfDI = 8;
     const int RESPONSE_TIME = 300;
-    const int NUMBER_OF_RETRIES = 2;
+    const int NUMBER_OF_RETRIES = 5;
     QString servername;
 
 

@@ -15,14 +15,19 @@ class RFThread : public QObject
     Q_OBJECT
     Q_PROPERTY(bool running READ running WRITE setRunning NOTIFY runningChanged)
     bool m_running;
+    QString m_message;
     int count;  // Счётчик, для понимания живой ли поток
 public:
-    RFThread();
+    explicit RFThread(QObject *parent = 0);
     bool running() const;
+    QString message() const;
+
 signals:
     void finished();
     void runningChanged(bool running);
-    void EmitMeasures(QVector<int> OutputMeasures);
+    void sendMessage(QVector<int> OutputMeasures);
+    void watchDog();
+
 public slots:
     void run();
     void setRunning(bool running);

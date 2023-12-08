@@ -2,7 +2,9 @@
 #define REFERENCEDIALOG_H
 
 #include <QDialog>
+#include <QMessageBox>
 #include <SQLmodule.h>
+#include "ConfirmationDialog.h"
 
 namespace Ui {
 class ReferenceDialog;
@@ -40,6 +42,7 @@ private slots:
 
 private:
     Ui::ReferenceDialog *ui;
+    ConfirmationDialog *CDialog;
 };
 
 #endif // REFERENCEDIALOG_H

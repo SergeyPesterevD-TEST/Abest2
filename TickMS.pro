@@ -26,6 +26,8 @@ SOURCES += \
     ModBusMaster.cpp \
     RF603.cpp \
     SQLmodule.cpp \
+    chartfromsql.cpp \
+    confirmationdialog.cpp \
     inisettings.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -70,6 +72,8 @@ HEADERS += \
     RFheaders/linuxTypeDefs.h \
     RFheaders/serial.h \
     SQLmodule.h \
+    chartfromsql.h \
+    confirmationdialog.h \
     inc/cmd.h \
     inc/cmd_types.h \
     inc/config.h \
@@ -115,6 +119,8 @@ HEADERS += \
     userdialog.h
 
 FORMS += \
+    chartfromsql.ui \
+    confirmationdialog.ui \
     mainwindow.ui \
     newrulondialog.ui \
     referencedialog.ui \

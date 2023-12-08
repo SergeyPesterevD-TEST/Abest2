@@ -4,6 +4,7 @@
 #include <QRandomGenerator>
 #include <QMainWindow>
 #include <QTimer>
+#include <QMessageBox>
 #include "windows.h"
 #include "objbase.h"
 #include "inisettings.h"
@@ -21,6 +22,7 @@
 #include "newrulondialog.h"
 #include "referencedialog.h"
 #include "userdialog.h"
+#include "ConfirmationDialog.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -50,17 +52,21 @@ public:
     float LL; // lenght global
 
 public slots:
-    void UpdateRF(QVector<int> OutputMeasures);
 
-private slots:   
-
+private slots:
+    void MyGetMessage(QVector<int> OutputMeasures);
+    void RestartPower();
     void slotTimerAlarm();  //опрос рифтэк
     void slotTimerAlarm2(); //прорисовка фильтра
     void slotTimerAlarm3(); //прорисовка рифтэк
 
+    void Delay(int msec);
+
     void makePlot();
 
-    void RepaintRiftek(QVector<SqlModule::Top100> *Top100Measures); 
+    void RepaintRiftek(QVector<SqlModule::Top100> *Top100Measures);
+    void RepaintRiftek2(QVector<SqlModule::Top100> *Top100Measures, float minY, float maxY);
+    int IsChannelOn(int channel);
 
     void FilterRiftek(QVector<SqlModule::Top100> *Top100Measures, QVector<int> *CurrentData);
     void FilterRiftek2(QVector<SqlModule::Top100> *Top100Measures);
@@ -118,6 +124,7 @@ private:
     int FilterCount;
     int MainCounter;
     BOOL beep;
+    bool NoWatchDog;
     int lampstatus;
     //
     ModBusMaster *Temps;
@@ -139,7 +146,9 @@ private:
     NewRulonDialog *NewRulonForm;
     ReferenceDialog *ReferenceDialogForm;
     UserDialog *UserDialogForm;
+
     //
+    ConfirmationDialog *CDialog;
     Ui::MainWindow *ui;
     RF603 RFSensors;
     int DataCount;

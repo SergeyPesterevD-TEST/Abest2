@@ -24,9 +24,13 @@ int SqlModule::SqlGetRulon(int RulonId, QVector<Top100> *Top100Measures)
     if (db.open())
     {
         QString sQuery;
-        sQuery = "SELECT MAX(LIR) as MAXLIR FROM ["+dbName+"].[dbo].[Measures] WHERE rulonkey="+QString::number(RulonId);
+        //sQuery = "SELECT MAX(LIR) as MAXLIR FROM ["+dbName+"].[dbo].[Measures] WHERE rulonkey="+QString::number(RulonId);
+        sQuery = "SELECT TOP 1 LIR as MAXLIR FROM ["+dbName+"].[dbo].[Measures] WHERE rulonkey="+QString::number(RulonId)+" order by MeasureKey desc";
         QSqlQuery Qry;
         float MAXLIR;
+
+        Qry.setForwardOnly(true);
+        Qry.prepare(sQuery);
 
         if (Qry.exec(sQuery))
         {
@@ -39,10 +43,15 @@ int SqlModule::SqlGetRulon(int RulonId, QVector<Top100> *Top100Measures)
         sQuery += "WHERE rulonkey="+QString::number(RulonId)+" AND LIR>"+INIFile->GetParamStr("Plot/cutBegin");
         sQuery += " AND LIR<"+QString::number(MAXLIR-INIFile->GetParam("Plot/cutEnd"))+" ORDER BY cdatetime DESC;";
         qDebug() << "CuttingEdges" << sQuery;
+
+        Qry.setForwardOnly(true);
+        Qry.prepare(sQuery);
+
         if (Qry.exec(sQuery))
         {
             //Qry.last();
             Top100Measures->clear();
+            float OLDLIR=1000000;
             while (Qry.next())
             {
                 Top100 OneMeasure;
@@ -56,8 +65,9 @@ int SqlModule::SqlGetRulon(int RulonId, QVector<Top100> *Top100Measures)
                 }
                 OneMeasure.LIR=Qry.value("LIR").toReal();
                 OneMeasure.SPEED=60*Qry.value("SPEED").toReal();
-
+                if (OneMeasure.LIR<OLDLIR)
                 Top100Measures->push_back(OneMeasure);
+                OLDLIR=OneMeasure.LIR;
             }
         } else qDebug() << "SELECT SQL Query is _NOT_ OK ";
         //qDebug() << sQuery;
@@ -100,6 +110,10 @@ int SqlModule::SqlGetLast(int GetCount, int GetHours, QVector<Top100> *Top100Mea
           }
           //qDebug() << sQuery;
           QSqlQuery Qry;
+
+          Qry.setForwardOnly(true);
+          Qry.prepare(sQuery);
+
           if (Qry.exec(sQuery))
           {
               Qry.last();
@@ -148,6 +162,10 @@ int SqlModule::SqlGetAverageRow(int Minutes,  QVector<float> *AverageRowMeasures
                   +"' AND cdatetime<='"+QDateTime::currentDateTime().toString(Qt::ISODate)+"' ORDER BY cdatetime DESC;";
           //qDebug() << sQuery;
           QSqlQuery Qry;
+
+          Qry.setForwardOnly(true);
+          Qry.prepare(sQuery);
+
           if (Qry.exec(sQuery))
           {
               Qry.last();
@@ -214,9 +232,11 @@ int SqlModule::SqlPutMeasure2(int rulon, QVector<int> *CurrentData,
           QDateTime CurrentDateTime=QDateTime::currentDateTime();
           sQuery = sQuery + "'"+CurrentDateTime.toString(Qt::ISODate)+"',";
 
+          int TotalThick=0;
           for (int i=0; i<INIFile->GetParam("Main/NumberOfPairs"); i++)
           {
           ThickValue=CurrentData->data()[i];
+          TotalThick=TotalThick+CurrentData->data()[i];
           sQuery = sQuery + "'"+QString::number(ThickValue,'f',3)+"'";
           sQuery = sQuery + ",";
           }
@@ -228,8 +248,12 @@ int SqlModule::SqlPutMeasure2(int rulon, QVector<int> *CurrentData,
           delete(INIFile);
           qDebug() << sQuery;
           QSqlQuery Qry;
-          //if (ThickValue>0)
+          if (TotalThick>0)
             {
+
+            Qry.setForwardOnly(true);
+            Qry.prepare(sQuery);
+
             if (Qry.exec(sQuery))
               {
     //            qDebug() << "INSERT OK ";
@@ -281,11 +305,14 @@ if (db.open())
       QSqlQuery Qry;
       //if (ThickValue>0)
         {
+        Qry.setForwardOnly(true);
+        Qry.prepare(sQuery);
+
         if (Qry.exec(sQuery))
           {
-//            qDebug() << "INSERT OK ";
+          //qDebug() << "INSERT OK ";
           } else qDebug() << "INSERT SQL Query is _NOT_ OK ";
-      //qDebug() << sQuery;
+        //qDebug() << sQuery;
         }
       db.close();
 } else
@@ -313,6 +340,9 @@ if (db.open())
       QSqlQuery Qry;
       TypesList.clear();
 
+      Qry.setForwardOnly(true);
+      Qry.prepare(sQuery);
+
       if (Qry.exec(sQuery))
       {
           while (Qry.next())
@@ -339,7 +369,7 @@ if (db.open())
 
 
 // SqlGetUsers(UsersList);
-int SqlModule::SqlGetUsers(QVector <UsersTypes> &UsersList)
+int SqlModule::SqlGetUsers(QVector <UsersTypes> &UsersList, QString ifs)
 {
 IniSettings *INIFile =new IniSettings;
 QString ServerName=INIFile->GetParamStr("SQL/ServerName");
@@ -351,9 +381,15 @@ db.setDatabaseName(dsn);
 if (db.open())
 {
       QString sQuery;
-      sQuery = "SELECT * FROM Users WHERE isactive=1 ORDER BY username";
+      sQuery = "SELECT * FROM Users WHERE isactive=1 ";
+      if (ifs!="") {sQuery=sQuery+" AND "+ifs;}
+      sQuery= sQuery+" ORDER BY username";
+
       QSqlQuery Qry;
       UsersList.clear();
+
+      Qry.setForwardOnly(true);
+      Qry.prepare(sQuery);
 
       if (Qry.exec(sQuery))
       {
@@ -401,10 +437,18 @@ if (db.open())
       qDebug() << "complicated INSERT" << sQuery;
 
       QSqlQuery Qry;
+
+      Qry.setForwardOnly(true);
+      Qry.prepare(sQuery);
+
       Qry.exec(sQuery);
 
       //get id
       sQuery = "SELECT * FROM Rulons order by rulonkey desc";
+
+      Qry.setForwardOnly(true);
+      Qry.prepare(sQuery);
+
       if (Qry.exec(sQuery))
       {
           if (Qry.next())
@@ -450,6 +494,9 @@ if (db.open())
       QSqlQuery Qry;
       float MAXLIR;
 
+      Qry.setForwardOnly(true);
+      Qry.prepare(sQuery);
+
       if (Qry.exec(sQuery))
       {
           Qry.first();
@@ -462,6 +509,10 @@ if (db.open())
       sQuery += "STDEV((c1+c2+c3+c4+c5)/5) as 'stdev', MAX(LIR) as 'LIR', AVG((c1+c2+c3+c4+c5)/5) as AllAverage FROM Measures WHERE c1<>0 and c2<>0 and c3<>0 and c4<>0 and c5<>0 and rulonkey="+QString::number(RulonId)+sLIRQuery;
 
       int Counter=0;
+
+      Qry.setForwardOnly(true);
+      Qry.prepare(sQuery);
+
       if (Qry.exec(sQuery))
       {
           while (Qry.next())
@@ -487,6 +538,10 @@ if (db.open())
       sQuery = "SELECT (c1+c2+c3+c4+c5)/5 AS c FROM Measures WHERE  c1<>0 and c2<>0 and c3<>0 and c4<>0 and c5<>0 and rulonkey="+QString::number(RulonId)+sLIRQuery;
       v1.clear();
       Counter=0;
+
+      Qry.setForwardOnly(true);
+      Qry.prepare(sQuery);
+
       if (Qry.exec(sQuery))
       {
           //          double asymmetry;
@@ -540,6 +595,10 @@ if (db.open())
       sQuery += ",[rulonlenght] = "+QString::number(length*1000);
       sQuery += " WHERE rulonkey="+QString::number(RulonId);
       qDebug() << "STTAT " <<  sQuery;
+
+      Qry.setForwardOnly(true);
+      Qry.prepare(sQuery);
+
       Qry.exec(sQuery);
       qDebug() << sQuery;
 
@@ -578,6 +637,10 @@ if (db.open())
       QString sQuery;
       sQuery = "SELECT * FROM Rulons "+FilterString;
       QSqlQuery Qry;
+
+      Qry.setForwardOnly(true);
+      Qry.prepare(sQuery);
+
       if (Qry.exec(sQuery))
       {
           while (Qry.next())
@@ -637,11 +700,19 @@ if (db.open())
       QSqlQuery Qry;
 
       sQuery = "SELECT * FROM Rulons WHERE rulonkey="+QString::number(RulonId);
+
+      Qry.setForwardOnly(true);
+      Qry.prepare(sQuery);
+
       if (Qry.exec(sQuery))
       {
           Qry.next();
           QString product=Qry.value("product").toString();
           sQuery = "SELECT * FROM Products WHERE ProductName='"+product+"'";
+
+          Qry.setForwardOnly(true);
+          Qry.prepare(sQuery);
+
           if (Qry.exec(sQuery))
           {
           Qry.next();
@@ -655,6 +726,9 @@ if (db.open())
       sQuery = "SELECT MAX(LIR) as MAXLIR FROM ["+dbName+"].[dbo].[Measures] WHERE rulonkey="+QString::number(RulonId);
       float MAXLIR;
 
+      Qry.setForwardOnly(true);
+      Qry.prepare(sQuery);
+
       if (Qry.exec(sQuery))
       {
           Qry.first();
@@ -663,6 +737,10 @@ if (db.open())
       sLIRQuery =  " AND LIR>"+INIFile->GetParamStr("Plot/cutBegin")+" AND LIR<"+QString::number(MAXLIR-INIFile->GetParam("Plot/cutEnd"));
 
       sQuery = "SELECT *  FROM Measures WHERE  c1<>0 and c2<>0 and c3<>0 and c4<>0 and c5<>0 and rulonkey="+QString::number(RulonId)+sLIRQuery;
+
+      Qry.setForwardOnly(true);
+      Qry.prepare(sQuery);
+
       if (Qry.exec(sQuery))
       {
           while (Qry.next())
@@ -685,6 +763,10 @@ if (db.open())
       Averages.clear();
 
       sQuery = "SELECT * FROM Rulons WHERE rulonkey="+QString::number(RulonId);
+
+      Qry.setForwardOnly(true);
+      Qry.prepare(sQuery);
+
       if (Qry.exec(sQuery))
       {
           if (Qry.next())
@@ -719,6 +801,10 @@ if (db.open())
 
 
       sQuery = "SELECT MAX(c1) as c1, MAX(c2) as c2, MAX(c3) as c3, MAX(c4) as c4, MAX(c5) as c5 FROM Measures WHERE  c1<>0 and c2<>0 and c3<>0 and c4<>0 and c5<>0 and rulonkey="+QString::number(RulonId)+sLIRQuery;
+
+      Qry.setForwardOnly(true);
+      Qry.prepare(sQuery);
+
       if (Qry.exec(sQuery))
       {
           if (Qry.next())
@@ -732,6 +818,10 @@ if (db.open())
       }
 
       sQuery = "SELECT MIN(c1) as c1, MIN(c2) as c2, MIN(c3) as c3, MIN(c4) as c4, MIN(c5) as c5 FROM Measures WHERE  c1<>0 and c2<>0 and c3<>0 and c4<>0 and c5<>0 and rulonkey="+QString::number(RulonId)+sLIRQuery;
+
+      Qry.setForwardOnly(true);
+      Qry.prepare(sQuery);
+
       if (Qry.exec(sQuery))
       {
           if (Qry.next())
@@ -745,6 +835,10 @@ if (db.open())
       }
 
       sQuery = "SELECT STDEV(c1) as c1, STDEV(c2) as c2, STDEV(c3) as c3, STDEV(c4) as c4, STDEV(c5) as c5 FROM Measures WHERE  c1<>0 and c2<>0 and c3<>0 and c4<>0 and c5<>0 and rulonkey="+QString::number(RulonId)+sLIRQuery;
+
+      Qry.setForwardOnly(true);
+      Qry.prepare(sQuery);
+
       if (Qry.exec(sQuery))
       {
           if (Qry.next())
@@ -771,7 +865,10 @@ if (db.open())
       for (int i=1;i<6;i++)
         {
         v1.clear();
-            if (Qry.exec(sQuery))
+        Qry.setForwardOnly(true);
+        Qry.prepare(sQuery);
+
+        if (Qry.exec(sQuery))
                 {
                   while (Qry.next())
                     {
@@ -839,6 +936,10 @@ if (db.open())
       sQuery += " WHERE "+where;
       qDebug() << "SqlModule::UpdateSQL" << sQuery;
       QSqlQuery Qry;
+
+      Qry.setForwardOnly(true);
+      Qry.prepare(sQuery);
+
       return Qry.exec(sQuery);
 }
 }
@@ -871,6 +972,10 @@ if (db.open())
 
       qDebug() << "SqlModule::InsertSQL" << sQuery;
       QSqlQuery Qry;
+
+      Qry.setForwardOnly(true);
+      Qry.prepare(sQuery);
+
       return Qry.exec(sQuery);
 }
 }
@@ -890,6 +995,83 @@ if (db.open())
       sQuery = "DELETE FROM "+table+" WHERE "+where;
       qDebug() << "SqlModule::DeleteSQL" << sQuery;
       QSqlQuery Qry;
+
+      Qry.setForwardOnly(true);
+      Qry.prepare(sQuery);
+
       return Qry.exec(sQuery);
 }
+}
+
+
+bool SqlModule::ConnectDB(QSqlDatabase &db, QString RegistryThread)
+{
+IniSettings *INIFile =new IniSettings;
+QString ServerName=INIFile->GetParamStr(RegistryThread+"/ServerName");
+QString dbName=INIFile->GetParamStr(RegistryThread+"/DBName");
+
+
+if (QSqlDatabase::contains("QODBC"))
+{ db = QSqlDatabase::database("QODBC"); }
+else
+{ db = QSqlDatabase::addDatabase("QODBC"); }
+
+db.setConnectOptions();
+QString dsn=INIFile->GetParamStr(RegistryThread+"/DSN").arg(ServerName).arg(dbName);
+db.setDatabaseName(dsn);
+delete(INIFile);
+
+return db.isOpen();
+}
+
+
+bool SqlModule::DoSELECT(QVector <QMap <QString,QString>> &ResultVector, QString query, QString dbname)
+{
+    QSqlDatabase db;
+    ConnectDB(db, dbname);
+    IniSettings *INIFile =new IniSettings;
+    delete(INIFile);
+    QMap <QString,QString> ResultMap;
+    bool Result=false;
+
+    ResultMap.clear();
+    ResultVector.clear();
+
+    qDebug() << "DOSELECT" << query;
+
+    if (db.open())
+    {
+          QString sQuery;
+          sQuery = query;
+          QSqlQuery Qry;
+          Qry.setForwardOnly(true);
+          Qry.prepare(sQuery);
+
+          if (Qry.exec(sQuery))
+          {
+              qDebug() << "found users " << Qry.size();
+              while (Qry.next())
+              {
+              Result=true;
+              QSqlRecord localRecord = Qry.record();
+              for (int i=0;i<Qry.record().count();i++)
+                {
+                bool ok;
+                QString str=localRecord.value(i).toString();
+                float num = str.toFloat(&ok);
+                //if (ok && localRecord.fieldName(i)!="Nest" && localRecord.fieldName(i)!="SiemensID") ResultMap.insert(localRecord.fieldName(i),QString::number(num,'f',3)); else
+                ResultMap.insert(localRecord.fieldName(i),localRecord.value(i).toString());
+                }
+              ResultVector.push_back(ResultMap);
+              }
+          return(Result);
+          } else qDebug() << "SELECT SQL Query is _NOT_ OK ";
+          qDebug() << sQuery;
+          db.close();
+    } else
+    {
+        qDebug() << "SQL ERROR: " << db.lastError().text();
+        //SetErrorEx(0,201,"Нет соединения к SQL локальному серверу : "+db.lastError().text(),"ВыхПульт");
+    }
+    return(false);
 }

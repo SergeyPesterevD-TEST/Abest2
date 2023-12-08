@@ -19,7 +19,13 @@ UserDialog::~UserDialog()
 UserDialog::UpdateAll()
 {
     SqlModule *SQLConnection=new SqlModule;
-    SQLConnection->SqlGetUsers(UsersList);
+    if (INIFile.GetParam("NoPort")==1)
+        {
+        SQLConnection->SqlGetUsers(UsersList,"isadmin=1");
+        } else
+            {
+            SQLConnection->SqlGetUsers(UsersList,"");
+            }
     ui->UsersComboBox->clear();
     for (int i=0;i<UsersList.count();i++)
     {

@@ -3,6 +3,7 @@
 
 #include <QDialog>
 #include "SQLmodule.h"
+#include "inisettings.h"
 
 namespace Ui {
 class UserDialog;
@@ -19,6 +20,7 @@ public:
     QVector <SqlModule::UsersTypes> UsersList;
     QString CurrentUser;
     int CurrentisAdmin;
+    IniSettings INIFile;
 
 private slots:
     void on_buttonBox_accepted();

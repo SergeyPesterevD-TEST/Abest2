@@ -4,6 +4,7 @@
 #include <QWidget>
 #include "inisettings.h"
 #include "SQLmodule.h"
+#include "chartfromsql.h"
 
 namespace Ui {
 class SQLFilter;
@@ -39,8 +40,12 @@ private slots:
 
     void on_pushButton_5_clicked();
 
+    void on_ChartButton_clicked();
+
 private:
     Ui::SQLFilter *ui;
+    ConfirmationDialog *CDialog;
+    ChartFromSQL *ChartFromSQLForm;
 };
 
 #endif // SQLFILTER_H

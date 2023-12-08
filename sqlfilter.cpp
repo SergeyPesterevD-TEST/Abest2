@@ -7,7 +7,7 @@ SQLFilter::SQLFilter(QWidget *parent) :
 {
     ui->setupUi(this);
     FilterString="";
-
+    ChartFromSQLForm = new ChartFromSQL;
 }
 
 SQLFilter::~SQLFilter()
@@ -34,7 +34,7 @@ void SQLFilter::UpdateTable()
     QSqlDatabase db = QSqlDatabase::addDatabase("QODBC");
     db.setConnectOptions();
     QString dsn=INIFile->GetParamStr("SQL/DSN").arg(ServerName).arg(dbName);
-    db.setDatabaseName(dsn);
+    db.setDatabaseName(dsn);    
 
     if (db.open())
     {
@@ -47,11 +47,16 @@ void SQLFilter::UpdateTable()
     SqlModule *SQLConnection=new SqlModule;
     QVector <int> ids;
     ids.clear();
+
+
+    Qry.setForwardOnly(true);
+    Qry.prepare(sQuery);
+
     if (Qry.exec(sQuery))
     {
         while (Qry.next())
         {
-        qDebug() << "SQLFiLTER" << Qry.value("rulonkey").toInt();
+        //qDebug() << "SQLFiLTER" << Qry.value("rulonkey").toInt();
         ids.push_back(Qry.value("rulonkey").toInt());
         //SQLConnection->SqlCalculateStatistics(Qry.value("rulonkey").toInt());
         }
@@ -84,6 +89,10 @@ void SQLFilter::UpdateTable()
         { FilterString=""; }
     sQuery+=" ORDER BY rulonkey DESC";
 
+
+    Qry.setForwardOnly(true);
+    Qry.prepare(sQuery);
+
     if (Qry.exec(sQuery))
     {
         while (Qry.next())
@@ -104,7 +113,8 @@ void SQLFilter::UpdateTable()
         ui->tableTypes->setItem(row, 12, new QTableWidgetItem(QString::number((float)Qry.value("stdev").toFloat()/1000000,'f',3)));
         row++;
         }
-    }
+        if (row==0) {ui->tableTypes->setRowCount(0);}
+    } else ui->tableTypes->setRowCount(0);
     }
 }
 
@@ -113,14 +123,16 @@ void SQLFilter::on_pushButton_clicked()
 {
     //
     SqlModule *SQLConnection=new SqlModule;
+    IniSettings *INIFile =new IniSettings;
     SQLConnection->FormXlsReport(0, FilterString);
     SQLConnection->deleteLater();
 
     QProcess *process = new QProcess(this);
-    QString file = "C:\\Program Files (x86)\\Microsoft Office\\Office12\\excel.exe";
+    QString file = INIFile->GetParamStr("ExcelPath");
     QStringList arguments;
     arguments << "c:\\xls\\output.xlsx";
     process->start(file, arguments);
+    delete(INIFile);
 }
 
 void SQLFilter::on_pushButton_2_clicked()
@@ -142,7 +154,7 @@ void SQLFilter::on_pushButton_3_clicked()
     SQLConnection->FormXlsSingleReport(RulonId, INIFile->GetParam("IncReg"));
 
     QProcess *process = new QProcess(this);
-    QString file = "C:\\Program Files (x86)\\Microsoft Office\\Office12\\excel.exe";
+    QString file = INIFile->GetParamStr("ExcelPath");
     QStringList arguments;
     arguments << "c:\\xls\\output2.xlsx";
     process->start(file, arguments);
@@ -180,13 +192,23 @@ void SQLFilter::on_FilterReset_clicked()
 
 void SQLFilter::on_pushButton_4_clicked()
 {
-    //
-   SqlModule *SQLConnection=new SqlModule;
-   SQLConnection->DeleteSQL("Measures","RulonKey="+ui->tableTypes->item(GlobalcurrentRow,0)->text());
-   SQLConnection->DeleteSQL("Rulons","RulonKey="+ui->tableTypes->item(GlobalcurrentRow,0)->text());
+   CDialog = new ConfirmationDialog;
+   CDialog->SetMessage("Удалить данный протокол ?");
+   CDialog->showNormal();
+   CDialog->move(350,300);
+   CDialog->setWindowFlags(Qt::FramelessWindowHint);
 
-   SQLConnection->deleteLater();
-   UpdateTable();
+   QString mText;
+   if(CDialog->exec() == QDialog::Accepted)
+   {
+    SqlModule *SQLConnection=new SqlModule;
+    SQLConnection->DeleteSQL("Measures","RulonKey="+ui->tableTypes->item(GlobalcurrentRow,0)->text());
+    SQLConnection->DeleteSQL("Rulons","RulonKey="+ui->tableTypes->item(GlobalcurrentRow,0)->text());
+
+    SQLConnection->deleteLater();
+    UpdateTable();
+   }
+   CDialog->deleteLater();
 }
 
 
@@ -196,5 +218,12 @@ void SQLFilter::on_pushButton_5_clicked()
 
    ui->filDate->setText(QDateTime::currentDateTime().toString("dd/MM/yyyy"));
    UpdateTable();
+}
+
+
+void SQLFilter::on_ChartButton_clicked()
+{
+   ChartFromSQLForm->showFullScreen();
+   ChartFromSQLForm->ShowChart(ui->tableTypes->item(GlobalcurrentRow,0)->text());
 }
 

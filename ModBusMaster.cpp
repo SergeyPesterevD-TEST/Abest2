@@ -7,7 +7,7 @@ ModBusMaster::ModBusMaster(QObject *parent):
     modbusDevice = new QModbusTcpClient(this);
 
     QObject::connect(modbusDevice, &QModbusClient::errorOccurred, [this](QModbusDevice::Error) {
-        qDebug() << servername << "1 MODBUS ERROR " << modbusDevice->errorString(); ReConnectModbus(); });
+        qDebug() << servername << "01 MODBUS ERROR " << modbusDevice->errorString(); ReConnectModbus(); });
 
    QObject::connect(modbusDevice, &QModbusClient::stateChanged, this, &ModBusMaster::StateChanged);
 
@@ -121,7 +121,7 @@ void ModBusMaster::ModbusReadInputRegisters(int serveraddress)
     if (!modbusDevice)
         return;
 
-    qDebug() << servername << "8 MODBUS RC " << QVariant::fromValue(modbusDevice->ConnectedState).value<QString>();
+    //qDebug() << servername << "08 MODBUS RC " << QVariant::fromValue(modbusDevice->ConnectedState).value<QString>();
 
     if (auto *lastRequest = modbusDevice->sendReadRequest(readRequest(0x00, 5, QModbusDataUnit::InputRegisters), serveraddress)) {
         if (!lastRequest->isFinished())
@@ -129,7 +129,7 @@ void ModBusMaster::ModbusReadInputRegisters(int serveraddress)
         else
             delete lastRequest; // broadcast replies return immediately
     } else {
-        qDebug() << servername << "9 Read error: " << modbusDevice->errorString();
+        qDebug() << servername << "09 MODBUS Read error: " << modbusDevice->errorString();
     }
 }
 
@@ -218,10 +218,13 @@ void ModBusMaster::ReConnectModbus()
     if (modbusDevice->ConnectedState==QModbusDevice::ConnectedState) { modbusDevice->disconnectDevice(); }
 
     if (modbusDevice->connectDevice())
-
+    {
         qDebug() << servername << "14 MODBUS" << QVariant::fromValue(modbusDevice->ConnectedState).value<QString>();
+    }
     else
+    {
         qDebug() << servername << "15 MODBUS ERROR Not Connected: " << modbusDevice->errorString();
+    }
 }
 
 
@@ -234,7 +237,6 @@ void ModBusMaster::ConnectModbus(QString MBServer)
         return;
     }
     qDebug() << servername << "16 MODBUS Connecting " << MBServer;
-    //if (modbusDevice->ConnectedState==QModbusDevice::ConnectedState) { modbusDevice->disconnectDevice(); }
 
     const QUrl url = QUrl::fromUserInput(MBServer);
     modbusDevice->setConnectionParameter(QModbusDevice::NetworkPortParameter, url.port());

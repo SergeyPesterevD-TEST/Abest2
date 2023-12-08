@@ -9,6 +9,7 @@
 #include "SQLmodule.h"
 #include "statistics.h"
 #include "xlsxdocument.h"
+#include "ConfirmationDialog.h"
 
 class SqlModule:public QObject
 {
@@ -57,7 +58,7 @@ public:
 
     // 2023
     int SqlGetTypes(QVector <CartonTypes> &TypesList);
-    int SqlGetUsers(QVector <UsersTypes> &UsersList);
+    int SqlGetUsers(QVector <UsersTypes> &UsersList, QString ifs);
     int SqlAddNewRulon(CurrentRulon &rulon);
     int SqlCalculateStatistics(int RulonId);
     void FormXlsReport(int RulonId, QString FilterString);
@@ -67,6 +68,13 @@ public:
     int UpdateSQL(QString table, QString where, QStringList columns, QStringList values);
     int InsertSQL(QString table, QStringList columns, QStringList values);
     int DeleteSQL(QString table, QString where);
+
+    bool ConnectDB(QSqlDatabase &db, QString RegistryThread);
+    bool DoSELECT(QVector <QMap <QString,QString>> &ResultVector, QString query, QString dbname);
+
+
+
+private:
 
 private slots:
 signals:

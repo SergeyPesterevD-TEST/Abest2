@@ -50,7 +50,7 @@ ReferenceDialog::UpdateAll()
 //        QString username, password, fingerprint;
 //    };
 
-    SQLConnection->SqlGetUsers(UsersList);
+    SQLConnection->SqlGetUsers(UsersList,"");
 
     ui->UserTypes->setColumnCount(6);
     ui->UserTypes->setColumnWidth(0,30);
@@ -116,10 +116,25 @@ void ReferenceDialog::on_pushButton_clicked()
 
 void ReferenceDialog::on_pushButton_3_clicked()
 {
-    SqlModule *SQLConnection=new SqlModule;
-    SQLConnection->DeleteSQL("Users", "namekey="+ui->UserTypes->item(GlobalcurrentRow,0)->text());
-    SQLConnection->deleteLater();
-    UpdateAll();
+    CDialog = new ConfirmationDialog;
+    CDialog->SetMessage("Удалить пользователя ? "+ui->UserTypes->item(GlobalcurrentRow,1)->text());
+    CDialog->showNormal();
+    CDialog->move(350,300);
+    CDialog->setWindowFlags(Qt::FramelessWindowHint);
+
+    QString mText;
+    if(CDialog->exec() == QDialog::Accepted)
+    {
+        if (ui->UserTypes->item(GlobalcurrentRow,0)->text()!="10034")
+        {
+        SqlModule *SQLConnection=new SqlModule;
+        SQLConnection->DeleteSQL("Users", "namekey="+ui->UserTypes->item(GlobalcurrentRow,0)->text());
+        SQLConnection->deleteLater();
+        UpdateAll();
+        } else {QMessageBox::warning(this, "Внимание","Нельзя удалять главного администратора");}
+    }
+    CDialog->deleteLater();
+
 }
 
 
@@ -172,9 +187,21 @@ void ReferenceDialog::on_pushButton_6_clicked()
 
 void ReferenceDialog::on_pushButton_5_clicked()
 {
+    CDialog = new ConfirmationDialog;
+    CDialog->SetMessage("Удаелить продукт ?");
+    CDialog->showNormal();
+    CDialog->move(350,300);
+    CDialog->setWindowFlags(Qt::FramelessWindowHint);
+
+    QString mText;
+    if(CDialog->exec() == QDialog::Accepted)
+    {
     SqlModule *SQLConnection=new SqlModule;
     SQLConnection->DeleteSQL("Products", "ProductKey="+ui->tableTypes->item(GlobalcurrentRow2,0)->text());
     SQLConnection->deleteLater();
     UpdateAll();
+    }
+    CDialog->deleteLater();
+
 }
 
