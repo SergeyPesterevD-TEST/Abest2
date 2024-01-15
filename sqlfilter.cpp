@@ -227,3 +227,13 @@ void SQLFilter::on_ChartButton_clicked()
    ChartFromSQLForm->ShowChart(ui->tableTypes->item(GlobalcurrentRow,0)->text());
 }
 
+
+void SQLFilter::on_pushButton_6_clicked()
+{
+   SqlModule *SQLConnection=new SqlModule;
+   SQLConnection->SqlCalculateStatistics(ui->tableTypes->item(GlobalcurrentRow,0)->text().toInt());
+   SQLConnection->deleteLater();
+
+   UpdateTable();
+}
+

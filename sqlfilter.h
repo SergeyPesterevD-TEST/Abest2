@@ -42,6 +42,8 @@ private slots:
 
     void on_ChartButton_clicked();
 
+    void on_pushButton_6_clicked();
+
 private:
     Ui::SQLFilter *ui;
     ConfirmationDialog *CDialog;

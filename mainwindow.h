@@ -5,6 +5,8 @@
 #include <QMainWindow>
 #include <QTimer>
 #include <QMessageBox>
+#include <QTextCodec>
+#include <QDateTime>
 #include "windows.h"
 #include "objbase.h"
 #include "inisettings.h"
@@ -59,6 +61,8 @@ private slots:
     void slotTimerAlarm();  //опрос рифтэк
     void slotTimerAlarm2(); //прорисовка фильтра
     void slotTimerAlarm3(); //прорисовка рифтэк
+
+    void ToLog(QString s);
 
     void Delay(int msec);
 

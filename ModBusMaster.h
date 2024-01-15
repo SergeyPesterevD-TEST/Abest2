@@ -62,16 +62,20 @@ private slots:
     void readReady();
     void startReadRequests();
     void stopReadRequests();
+    void errorHandler(QModbusDevice::Error errorCode);
+    void statusHandler(QModbusDevice::State status);
+
+
 
 private:
-
+    bool checkConnection();
     void init();
     QModbusClient *modbusDevice = nullptr;
     static const int m_NumberOfDI = 8;
     const int RESPONSE_TIME = 300;
     const int NUMBER_OF_RETRIES = 5;
     QString servername;
-
+    QTimer *m_reconnectTimer;
 
 protected:
 

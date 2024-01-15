@@ -4,17 +4,29 @@
 ModBusMaster::ModBusMaster(QObject *parent):
     modbusDevice(nullptr)
 {
+    m_reconnectTimer = new QTimer(this);
     modbusDevice = new QModbusTcpClient(this);
+    QObject::connect(modbusDevice, &QModbusClient::errorOccurred, this, &ModBusMaster::errorHandler);
+    QObject::connect(modbusDevice, &QModbusClient::stateChanged, this, &ModBusMaster::statusHandler);
 
-    QObject::connect(modbusDevice, &QModbusClient::errorOccurred, [this](QModbusDevice::Error) {
-        qDebug() << servername << "01 MODBUS ERROR " << modbusDevice->errorString(); ReConnectModbus(); });
-
-   QObject::connect(modbusDevice, &QModbusClient::stateChanged, this, &ModBusMaster::StateChanged);
-
-   DIVector.clear();
-   for (int i=0;i<50;i++) DIVector.push_back(0);
-
+    DIVector.clear();
+    for (int i=0;i<50;i++) DIVector.push_back(0);
 }
+
+void ModBusMaster::errorHandler(QModbusDevice::Error errorCode)
+{
+   qDebug()<<"error "<< modbusDevice->errorString();
+   if(errorCode != QModbusDevice::Error::NoError && !checkConnection())
+       ReConnectModbus();
+}
+
+void ModBusMaster::statusHandler(QModbusDevice::State status)
+{
+   qDebug()<<"new status:"<<status;
+   QString StatusStr=QVariant::fromValue(status).value<QString>();
+   if(!checkConnection()) ReConnectModbus();
+}
+
 
 void ModBusMaster::StateChanged(QModbusClient::State state)
 {
@@ -209,22 +221,38 @@ QModbusDataUnit ModBusMaster::writeRequest(int StartAdress, int WriteSize) const
     return QModbusDataUnit(QModbusDataUnit::Coils, StartAdress, WriteSize);
 }
 
+bool ModBusMaster::checkConnection()
+{
+    bool rez = false;
+    if(modbusDevice == nullptr)
+    {
+        qCritical()<<"Modbus not connected!";
+        rez = false;
+    }
+    else
+        rez = modbusDevice->state() == QModbusDevice::State::ConnectedState;
+
+    return rez;
+}
+
 
 void ModBusMaster::ReConnectModbus()
 {
-    if (!modbusDevice)
-        return;
-    qDebug() << servername << "13 MODBUS ReConnecting ";
-    if (modbusDevice->ConnectedState==QModbusDevice::ConnectedState) { modbusDevice->disconnectDevice(); }
+    if (!modbusDevice) { qDebug() << "No Modbus device to reconnect"; return;}
 
-    if (modbusDevice->connectDevice())
-    {
-        qDebug() << servername << "14 MODBUS" << QVariant::fromValue(modbusDevice->ConnectedState).value<QString>();
-    }
-    else
-    {
-        qDebug() << servername << "15 MODBUS ERROR Not Connected: " << modbusDevice->errorString();
-    }
+    modbusDevice->disconnectDevice();
+
+    m_reconnectTimer->setSingleShot(true);
+    connect(m_reconnectTimer, &QTimer::timeout, [=](){
+        if (modbusDevice->connectDevice())
+        {
+            qDebug() << servername << "118 ReConnectModbus() MODBUS ERROR Not Connected: " << modbusDevice->errorString();
+        }
+        disconnect(m_reconnectTimer, &QTimer::timeout, nullptr, nullptr);
+    });
+    m_reconnectTimer->start(1000);
+
+
 }
 
 

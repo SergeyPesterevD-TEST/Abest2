@@ -14,6 +14,8 @@ MainWindow::MainWindow(QWidget *parent)
     UserDialogForm = new UserDialog;
     NoWatchDog=false;
 
+    NewRulonForm->Rulon.nominal=0;
+
     // MODBUS
     // temperature
     if (INIFile.GetParam("NoPort")!=1)
@@ -331,6 +333,7 @@ void MainWindow::RestartPower()
 //   //
    if (NoWatchDog) return;
    NoWatchDog=true;
+   ToLog("thread watchdog");
    qDebug() << "thread watchdog";
    LightPost->WriteCoils(7,true);
    Delay(1000);
@@ -375,13 +378,13 @@ void MainWindow::slotTimerAlarm2()    // OWEN && MODBUS
     }
     // !OWEN
 
-//    Temps->ModbusReadInputRegisters(1);
-//    ui->Temperatures->setText(
-//        QString::number(Temps->DIVector[0]/100)+" C,"+
-//        QString::number(Temps->DIVector[1]/100)+" C,"+
-//        QString::number(Temps->DIVector[2]/100)+" C,"+
-//        QString::number(Temps->DIVector[3]/100)+" C"
-//        );
+    Temps->ModbusReadInputRegisters(1);
+    ui->Temperatures->setText(
+        QString::number(Temps->DIVector[0]/100)+" C,"+
+        QString::number(Temps->DIVector[1]/100)+" C,"+
+        QString::number(Temps->DIVector[2]/100)+" C,"+
+        QString::number(Temps->DIVector[3]/100)+" C"
+        );
 
     if (UserDialogForm->CurrentUser=="")
             {
@@ -431,9 +434,9 @@ void MainWindow::slotTimerAlarm()   // основной поток по рабо
         {     ThickValue=0;    }
 
     if (NewRulonForm->RulonId<=0) { ThickOffset=0; }
-//    qDebug() << "Канал " << i << SensorTable[i] << SensorTable[i+INIFile.GetParam("Main/NumberOfPairs")]
-//             << INIFile.GetCalib(i,"Base")
-//             << Measures.data()[SensorTable[i]] << Measures.data()[SensorTable[i+INIFile.GetParam("Main/NumberOfPairs")]] << "ThickValue =" << ThickValue << "offset" << ThickOffset;
+   qDebug() << "Канал " << i << SensorTable[i] << SensorTable[i+INIFile.GetParam("Main/NumberOfPairs")]
+           << INIFile.GetCalib(i,"Base")
+             << Measures.data()[SensorTable[i]] << Measures.data()[SensorTable[i+INIFile.GetParam("Main/NumberOfPairs")]] << "ThickValue =" << ThickValue << "offset" << ThickOffset;
 
     if (ThickValue!=0) {ThickValue = ThickValue + ThickOffset*1000;}
 
@@ -541,6 +544,19 @@ if (INIFile.GetParam("NoPort")==1)
 
     qDebug() << "TESTGRAPH " << NewRulonForm->RulonId;
     RepaintRiftek(&Top100Measures);
+}
+
+void MainWindow::ToLog(QString s)
+{
+    QTextCodec::setCodecForLocale( QTextCodec::codecForName( "UTF-8" ) );
+
+    QString FILE_NAME = "C:/LOGS/"+QDate::currentDate().toString("yyyy-MM-dd");
+    QFile out( FILE_NAME );
+    if( out.open( QIODevice::WriteOnly ) ) {
+    QTextStream stream( &out );
+    stream << QTime::currentTime().toString("hh:mm") << s;
+    out.close();
+    }
 }
 
 void MainWindow::Delay(int msec)

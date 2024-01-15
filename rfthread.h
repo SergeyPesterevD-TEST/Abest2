@@ -8,6 +8,10 @@
 #include "inisettings.h"
 #include "RFHeaders/RF603Device.h"
 #include "RFHeaders/RFEthernetDetector.h"
+#include <QTextCodec>
+#include <QDateTime>
+#include <QFile>
+
 
 
 class RFThread : public QObject
@@ -21,6 +25,7 @@ public:
     explicit RFThread(QObject *parent = 0);
     bool running() const;
     QString message() const;
+    void ToLog(QString s);
 
 signals:
     void finished();

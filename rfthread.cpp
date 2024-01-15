@@ -19,6 +19,19 @@ bool RFThread::running() const
     return m_running;
 }
 
+void RFThread::ToLog(QString s)
+{
+    QTextCodec::setCodecForLocale( QTextCodec::codecForName( "UTF-8" ) );
+
+    QString FILE_NAME = "C:/LOGS/"+QDate::currentDate().toString("yyyy-MM-dd RF");
+    QFile out( FILE_NAME );
+    if( out.open( QIODevice::WriteOnly ) ) {
+        QTextStream stream( &out );
+        stream << QTime::currentTime().toString("hh:mm") << s;
+        out.close();
+    }
+}
+
 
 void RFThread::run()
 {
@@ -35,6 +48,7 @@ BOOL bConn = FALSE;
 QString ComPortNumber=INIFile->GetParamStr("Main/ComPortNumber");
 QString ComPortSpeed=INIFile->GetParamStr("Main/SensorSpeed");
 qDebug() << "THREAD Opening " << ComPortNumber << ComPortSpeed << "...";
+ToLog("THREAD Opening ");
 
 QByteArray temp_data;
 QString temp_str;
