@@ -509,7 +509,8 @@ if (db.open())
       sLIRQuery =  " AND LIR>"+INIFile->GetParamStr("Plot/cutBegin")+" AND LIR<"+QString::number(MAXLIR-INIFile->GetParam("Plot/cutEnd"));
 
       sQuery = "SELECT AVG(c1) as 'ac1',AVG(c2) as 'ac2',AVG(c3) as 'ac3',AVG(c4) as 'ac4',AVG(c5) as 'ac5',";
-      sQuery += "STDEV((c1+c2+c3+c4+c5)/5) as 'stdev', MAX(LIR) as 'LIR', AVG((c1+c2+c3+c4+c5)/5) as AllAverage FROM Measures WHERE c1<>0 and c2<>0 and c3<>0 and c4<>0 and c5<>0 and rulonkey="+QString::number(RulonId)+sLIRQuery;
+      //sQuery += "STDEV((c1+c2+c3+c4+c5)/5) as 'stdev', MAX(LIR) as 'LIR', AVG((c1+c2+c3+c4+c5)/5) as AllAverage FROM Measures WHERE c1<>0 and c2<>0 and c3<>0 and c4<>0 and c5<>0 and rulonkey="+QString::number(RulonId)+sLIRQuery;
+      sQuery += "STDEV((c1+c2+c3+c4+c5)/5) as 'stdev', MAX(LIR) as 'LIR', AVG((c1+c2+c3+c4+c5)/5) as AllAverage FROM Measures WHERE c1+c2+c3+c4+c5<>0 and rulonkey="+QString::number(RulonId)+sLIRQuery;
 
       qDebug() << "STTAT" << sQuery;
 
@@ -540,7 +541,7 @@ if (db.open())
       } else qDebug() << "SELECT SQL Query is _NOT_ OK ";
 
       // next stage
-      sQuery = "SELECT (c1+c2+c3+c4+c5)/5 AS c FROM Measures WHERE  c1<>0 and c2<>0 and c3<>0 and c4<>0 and c5<>0 and rulonkey="+QString::number(RulonId)+sLIRQuery;
+      sQuery = "SELECT (c1+c2+c3+c4+c5)/5 AS c FROM Measures WHERE  c1+c2+c3+c4+c5<>0 and rulonkey="+QString::number(RulonId)+sLIRQuery;
       v1.clear();
       Counter=0;
 
